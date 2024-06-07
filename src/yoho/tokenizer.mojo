@@ -16,6 +16,9 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias ENDMARKER = Kind(7)
     alias NEWLINE = Kind(8)
 
+    # Syntax node kinds
+    alias BinOp = Kind(9)
+
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
 
@@ -41,6 +44,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "ENDMARKER"
         elif self == Kind.NEWLINE:
             return "NEWLINE"
+        elif self == Kind.BinOp:
+            return "BinOp"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:
@@ -68,6 +73,30 @@ fn to_kind(kind: String) raises -> Kind:
         return Kind.NEWLINE
     else:
         raise Error("invalid kind")
+
+
+fn K[s: StringLiteral]() raises -> Optional[Kind]:
+    @parameter
+    if s == "ENDMARKER":
+        return Kind.ENDMARKER
+    elif s == "NUMBER":
+        return Kind.NUMBER
+    elif s == "NEWLINE":
+        return Kind.NEWLINE
+    elif s == "LPAR":
+        return Kind.LPAR
+    elif s == "RPAR":
+        return Kind.RPAR
+    elif s == "PLUS":
+        return Kind.PLUS
+    elif s == "MINUS":
+        return Kind.MINUS
+    elif s == "STAR":
+        return Kind.STAR
+    elif s == "SLASH":
+        return Kind.SLASH
+
+    return None
 
 
 @value
