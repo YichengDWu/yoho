@@ -49,9 +49,9 @@ fn test_parser() raises:
     print(tree2.value()[].unparse())
 
     var node3 = tree2.value()[].args[0]
-    assert_equal(node3[].kind, Kind.NUMBER)
+    assert_equal(node3[].kind, Kind.BinOp)
     var node4 = tree2.value()[].args[1]
-    assert_equal(node4[].text, "-")
+    assert_equal(node4[].text, "+")
 
     assert_equal(tree2.value()[].unparse(), "1-2+3")
 
