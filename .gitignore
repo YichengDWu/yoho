@@ -2,5 +2,6 @@
 ~.o
 tmp*
 a.out
-yoho 
+yoho
+!src/yoho
 install_id

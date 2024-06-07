@@ -1,5 +1,7 @@
-yoho: main.mojo
-	mojo build -o $@ $^
+SRC_FILES := $(wildcard src/yoho/*.mojo)
+
+yoho: main.mojo $(SRC_FILES)
+	mojo build -I src -o $@ $<
 
 test: yoho
 	./test.sh
