@@ -1,1 +1,1 @@
-from .tokenizer import TokenGenerator
+from .tokenizer import TokenGenerator, Tokenizer
