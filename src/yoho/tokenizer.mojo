@@ -6,18 +6,36 @@ from collections import InlineList
 struct Kind(EqualityComparable, Representable, Stringable):
     var value: Int
 
-    alias PLUS = Kind(0)
-    alias MINUS = Kind(1)
-    alias STAR = Kind(2)
-    alias SLASH = Kind(3)
-    alias LPAR = Kind(4)
-    alias RPAR = Kind(5)
-    alias NUMBER = Kind(6)
-    alias ENDMARKER = Kind(7)
-    alias NEWLINE = Kind(8)
+    alias ENDMARKER = Self(0)
+    alias NUMBER = Self(2)
+    alias NEWLINE = Self(4)
+    alias LPAR = Self(7)
+    alias RPAR = Self(8)
+    alias LSQB = Self(9)
+    alias RSQB = Self(10)
+    alias COLON = Self(11)
+    alias COMMA = Self(12)
+    alias SEMI = Self(13)
+    alias PLUS = Self(14)
+    alias MINUS = Self(15)
+    alias STAR = Self(16)
+    alias SLASH = Self(17)
+    alias VBAR = Self(18)
+    alias AMPER = Self(19)
+    alias LESS = Self(20)
+    alias GREATER = Self(21)
+    alias EQUAL = Self(22)
+    alias DOT = Self(23)
+    alias PERCENT = Self(24)
+    alias LBRACE = Self(25)
+    alias RBRACE = Self(26)
+    alias TILDE = Self(31)
+    alias CIRCUMFLEX = Self(32)
+    alias AT = Self(49)
+    alias EXCLAMATION = Self(54)
 
     # Syntax node kinds
-    alias BinOp = Kind(9)
+    alias BinOp = Kind(69)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -38,6 +56,42 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "LPAR"
         elif self == Kind.RPAR:
             return "RPAR"
+        elif self == Kind.COMMA:
+            return "COMMA"
+        elif self == Kind.SEMI:
+            return "SEMI"
+        elif self == Kind.LSQB:
+            return "LSQB"
+        elif self == Kind.RSQB:
+            return "RSQB"
+        elif self == Kind.COLON:
+            return "COLON"
+        elif self == Kind.VBAR:
+            return "VBAR"
+        elif self == Kind.AMPER:
+            return "AMPER"
+        elif self == Kind.LESS:
+            return "LESS"
+        elif self == Kind.GREATER:
+            return "GREATER"
+        elif self == Kind.EQUAL:
+            return "EQUAL"
+        elif self == Kind.DOT:
+            return "DOT"
+        elif self == Kind.PERCENT:
+            return "PERCENT"
+        elif self == Kind.LBRACE:
+            return "LBRACE"
+        elif self == Kind.RBRACE:
+            return "RBRACE"
+        elif self == Kind.TILDE:
+            return "TILDE"
+        elif self == Kind.CIRCUMFLEX:
+            return "CIRCUMFLEX"
+        elif self == Kind.AT:
+            return "AT"
+        elif self == Kind.EXCLAMATION:
+            return "EXCLAMATION"
         elif self == Kind.NUMBER:
             return "NUMBER"
         elif self == Kind.ENDMARKER:
@@ -69,6 +123,42 @@ fn to_kind(kind: String) raises -> Kind:
         return Kind.LPAR
     elif kind == ")":
         return Kind.RPAR
+    elif kind == ",":
+        return Kind.COMMA
+    elif kind == ";":
+        return Kind.SEMI
+    elif kind == "[":
+        return Kind.LSQB
+    elif kind == "]":
+        return Kind.RSQB
+    elif kind == ":":
+        return Kind.COLON
+    elif kind == "|":
+        return Kind.VBAR
+    elif kind == "&":
+        return Kind.AMPER
+    elif kind == "<":
+        return Kind.LESS
+    elif kind == ">":
+        return Kind.GREATER
+    elif kind == "=":
+        return Kind.EQUAL
+    elif kind == ".":
+        return Kind.DOT
+    elif kind == "%":
+        return Kind.PERCENT
+    elif kind == "{":
+        return Kind.LBRACE
+    elif kind == "}":
+        return Kind.RBRACE
+    elif kind == "~":
+        return Kind.TILDE
+    elif kind == "^":
+        return Kind.CIRCUMFLEX
+    elif kind == "@":
+        return Kind.AT
+    elif kind == "!":
+        return Kind.EXCLAMATION
     elif kind == "\n":
         return Kind.NEWLINE
     else:
@@ -207,8 +297,32 @@ struct TokenGenerator:
         return ""
 
     fn next_token(inout self) raises -> Token:
-        alias single_char_ops = InlineList[String, 7](
-            "+", "-", "*", "/", "(", ")", "\n"
+        alias single_char_ops = InlineList[String, 25](
+            "+",
+            "-",
+            "*",
+            "/",
+            "(",
+            ")",
+            ":",
+            "|",
+            "!",
+            "&",
+            ",",
+            ";",
+            "<",
+            ">",
+            "=",
+            ".",
+            "%",
+            "{",
+            "}",
+            "~",
+            "^",
+            "@",
+            "[",
+            "]",
+            "\n",
         )
 
         var c = self.next_char()
@@ -218,7 +332,6 @@ struct TokenGenerator:
         # skip whitespaces
         while c == " ":
             c = self.next_char()
-
         if c in single_char_ops:
             return Token(to_kind(c), c, self.pos - 1, self.pos)
         elif isdigit(ord(c)):

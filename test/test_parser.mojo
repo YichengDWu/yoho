@@ -56,6 +56,43 @@ fn test_parser() raises:
     assert_equal(tree2.value()[].unparse(), "1-2+3")
 
 
+fn test_single_char() raises:
+    var single_char_ops = List[String](
+        "+",
+        "-",
+        "*",
+        "/",
+        "(",
+        ")",
+        ":",
+        "|",
+        "!",
+        "&",
+        ",",
+        ";",
+        "<",
+        ">",
+        "=",
+        ".",
+        "%",
+        "{",
+        "}",
+        "~",
+        "^",
+        "@",
+        "[",
+        "]",
+        "\n",
+    )
+    for char in single_char_ops:
+        var code = "1 " + char[] + " 2"
+        var tokenizer = Tokenizer(code)
+        var token = tokenizer.bump()
+        token = tokenizer.bump()
+        assert_equal(token.text, char[])
+
+
 def main():
     test_basic()
     test_parser()
+    test_single_char()

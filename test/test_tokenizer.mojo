@@ -28,6 +28,43 @@ fn test_peek_next_token() raises:
         next_token = tokenizer.bump()
 
 
+fn test_single_char() raises:
+    var single_char_ops = List[String](
+        "+",
+        "-",
+        "*",
+        "/",
+        "(",
+        ")",
+        ":",
+        "|",
+        "!",
+        "&",
+        ",",
+        ";",
+        "<",
+        ">",
+        "=",
+        ".",
+        "%",
+        "{",
+        "}",
+        "~",
+        "^",
+        "@",
+        "[",
+        "]",
+        "\n",
+    )
+    for char in single_char_ops:
+        var code = "1 " + char[] + " 2"
+        var tokenizer = Tokenizer(code)
+        var token = tokenizer.bump()
+        token = tokenizer.bump()
+        assert_equal(token.text, char[])
+
+
 def main():
     test_peek_next_char()
     test_peek_next_token()
+    test_single_char()
