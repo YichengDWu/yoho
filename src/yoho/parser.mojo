@@ -1,5 +1,5 @@
 from .tokenizer import Kind, K, Token, Tokenizer
-from .node import Node
+from .node import NodeData, Node
 from collections.dict import KeyElement
 
 
@@ -48,8 +48,10 @@ struct Parser:
             if plus:
                 var expr = self.expr()
                 if expr:
-                    return Node(
-                        Kind.BinOp, term.take(), plus.take(), expr.take()
+                    return Arc(
+                        NodeData(
+                            Kind.BinOp, term.take(), plus.take(), expr.take()
+                        )
                     )
 
         self.reset(mark)
@@ -60,8 +62,10 @@ struct Parser:
             if minus:
                 var expr1 = self.expr()
                 if expr1:
-                    return Node(
-                        Kind.BinOp, term1.take(), minus.take(), expr1.take()
+                    return Arc(
+                        NodeData(
+                            Kind.BinOp, term1.take(), minus.take(), expr1.take()
+                        )
                     )
         self.reset(mark)
 
@@ -76,15 +80,16 @@ struct Parser:
         #     | atom `/` term {Node(BinOp, atom, slash, term)}
         #     | atom
         var mark = self.mark()
-
         var atom = self.atom()
         if atom:
             var star = self.expect["*"]()
             if star:
                 var term = self.term()
                 if term:
-                    return Node(
-                        Kind.BinOp, atom.take(), star.take(), term.take()
+                    return Arc(
+                        NodeData(
+                            Kind.BinOp, atom.take(), star.take(), term.take()
+                        )
                     )
         self.reset(mark)
 
@@ -94,8 +99,10 @@ struct Parser:
             if slash:
                 var term1 = self.term()
                 if term1:
-                    return Node(
-                        Kind.BinOp, atom1.take(), slash.take(), term1.take()
+                    return Arc(
+                        NodeData(
+                            Kind.BinOp, atom1.take(), slash.take(), term1.take()
+                        )
                     )
         self.reset(mark)
 
@@ -107,15 +114,9 @@ struct Parser:
         return None
 
     fn atom(inout self: Parser) raises -> Optional[Node]:
-        # atom: NAME
-        #     | NUMBER
+        # atom: NUMBER
         #     | '(' expr ')' {expr}
-
         var mark = self.mark()
-        var name = self.expect["NAME"]()
-        if name:
-            return name.take()
-        self.reset(mark)
 
         var number = self.expect["NUMBER"]()
         if number:

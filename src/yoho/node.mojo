@@ -1,64 +1,45 @@
-from .tokenizer import Kind, Span, Token
-from .utils import pad, rpad
+from yoho.tokenizer import Kind, Span, Token
+from yoho.utils import pad, rpad
 
 
-struct Node(EqualityComparable, CollectionElement, Stringable, Representable):
+alias Node = Arc[NodeData]
+
+
+struct NodeData(EqualityComparable, Movable, Stringable, Representable):
     var kind: Kind
     var text: String
     var span: Span
-    var args: List[Node]
+    var args: List[Arc[NodeData]]
 
     fn __init__(inout self, owned other: Token):
         self.kind = other.kind
         self.text = other.text
         self.span = other.span
-        self.args = List[Node]()
+        self.args = List[Arc[NodeData]]()
 
     fn __init__(
         inout self,
         owned kind: Kind,
-        owned arg1: Node,
-        owned *args: Node,
+        owned arg: Arc[NodeData],
+        owned *args: Arc[NodeData],
     ):
         self.kind = kind
         self.text = ""
-        self.span = Span(
-            arg1.span.start,
-            args[len(args) - 1].span.end,
-        )
-        self.args = List[Node](capacity=len(args) + 1)
-        self.args.size = len(args) + 1
-        var ptr = self.args.unsafe_ptr()
-        ptr.init_pointee_copy(arg1)
-        ptr += 1
-        for i in range(len(args)):
-            ptr.init_pointee_copy(args[i])
-            ptr += 1
+        var start = arg[].span.start
+        var arg_last = args[len(args) - 1]
+        var end = arg_last[].span.end
 
-    fn __copyinit__(inout self, other: Self):
-        self.kind = other.kind
-        self.text = other.text
-        self.span = other.span
-        self.args = List[Node](capacity=len(other.args))
-        self.args.size = len(other.args)
-        var ptr = self.args.unsafe_ptr()
-        for i in range(len(other.args)):
-            ptr.init_pointee_copy(other.args[i])
-            ptr += 1
+        self.span = Span(start, end)
+        self.args = List[Node](capacity=len(args) + 1)
+        self.args.append(arg)
+        for i in range(len(args)):
+            self.args.append(args[i])
 
     fn __moveinit__(inout self, owned other: Self):
         self.kind = other.kind
         self.text = other.text^
         self.span = other.span
-        self.args = List[Node](capacity=len(other.args))
-        self.args.size = len(other.args)
-        var ptr = self.args.unsafe_ptr()
-        for i in range(len(other.args)):
-            ptr.init_pointee_move(other.args[i])
-            ptr += 1
-
-    fn __del__(owned self):
-        self.args.clear()
+        self.args = other.args^
 
     fn __eq__(self, other: Self) -> Bool:
         var res = (
@@ -71,7 +52,7 @@ struct Node(EqualityComparable, CollectionElement, Stringable, Representable):
             return res
 
         for i in range(len(self.args)):
-            if self.args[i] != other.args[i]:
+            if self.args[i][] != other.args[i][]:
                 return False
 
         return res
@@ -82,6 +63,10 @@ struct Node(EqualityComparable, CollectionElement, Stringable, Representable):
     @always_inline("nodebug")
     fn isleaf(self) -> Bool:
         return not self.args
+
+    @always_inline("nodebug")
+    fn iseof(self) -> Bool:
+        return self.kind == Kind.ENDMARKER
 
     fn to_string[with_text: Bool = True](self, indent: Int = 0) -> String:
         var textstr = repr(self.text) if self.isleaf() else self.text
@@ -106,8 +91,16 @@ struct Node(EqualityComparable, CollectionElement, Stringable, Representable):
             line += "\n"
             var new_indent = indent + 2
             for arg in self.args:
-                line += arg[].to_string[with_text](new_indent)
+                line += arg[][].to_string[with_text](new_indent)
         return line
+
+    @staticmethod
+    fn to_string(list: List[Arc[NodeData]]) -> String:
+        var res = String()
+        var fmt = Formatter(res)
+        for node in list:
+            write_to(fmt, Self.to_string(node[][]))
+        return res
 
     fn __str__(self) -> String:
         return self.to_string[True]()
@@ -122,9 +115,19 @@ struct Node(EqualityComparable, CollectionElement, Stringable, Representable):
             ", span=",
             str(self.span),
             ", args=",
-            self.args.__str__(),
+            Self.to_string(self.args),
             ")",
         )
 
-    fn iseof(self) -> Bool:
-        return self.kind == Kind.ENDMARKER
+    fn unparse(self) -> String:
+        var res = String()
+        var fmt = Formatter(res)
+        self.format_to(fmt)
+        return res
+
+    fn format_to(self, inout fmt: Formatter):
+        for arg in self.args:
+            if len(arg[][].args) == 0:
+                arg[][].text.format_to(fmt)
+            else:
+                arg[][].format_to(fmt)
