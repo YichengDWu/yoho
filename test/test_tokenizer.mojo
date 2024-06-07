@@ -1,5 +1,5 @@
 from testing import assert_equal
-from yoho import TokenGenerator, Tokenizer
+from yoho import TokenGenerator, Tokenizer, Kind
 
 
 fn test_peek_next_char() raises:
@@ -64,7 +64,49 @@ fn test_single_char() raises:
         assert_equal(token.text, char[])
 
 
+fn test_string() raises:
+    # Double quotes
+    var code = String('"hello"')
+    var tokenizer = Tokenizer(code)
+    var token = tokenizer.bump()
+    assert_equal(token.text, '"hello"')
+    assert_equal(token.kind, Kind.STRING)
+
+    # Single quotes
+    code = String("'hello'")
+    tokenizer = Tokenizer(code)
+    token = tokenizer.bump()
+    assert_equal(token.text, "'hello'")
+    assert_equal(token.kind, Kind.STRING)
+
+
+fn test_name() raises:
+    var code = String("x-y+z")
+    var tokenizer = Tokenizer(code)
+    var token = tokenizer.bump()
+    assert_equal(token.text, "x")
+    assert_equal(token.kind, Kind.NAME)
+
+    token = tokenizer.bump()
+    assert_equal(token.text, "-")
+    assert_equal(token.kind, Kind.MINUS)
+
+    token = tokenizer.bump()
+    assert_equal(token.text, "y")
+    assert_equal(token.kind, Kind.NAME)
+
+    token = tokenizer.bump()
+    assert_equal(token.text, "+")
+    assert_equal(token.kind, Kind.PLUS)
+
+    token = tokenizer.bump()
+    assert_equal(token.text, "z")
+    assert_equal(token.kind, Kind.NAME)
+
+
 def main():
     test_peek_next_char()
     test_peek_next_token()
     test_single_char()
+    test_string()
+    test_name()

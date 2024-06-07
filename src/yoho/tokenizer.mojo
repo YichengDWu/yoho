@@ -1,5 +1,6 @@
 from .utils import pad, lpad, rpad
 from collections import InlineList
+from python import Python
 
 
 @value
@@ -7,7 +8,9 @@ struct Kind(EqualityComparable, Representable, Stringable):
     var value: Int
 
     alias ENDMARKER = Self(0)
+    alias NAME = Self(1)
     alias NUMBER = Self(2)
+    alias STRING = Self(3)
     alias NEWLINE = Self(4)
     alias LPAR = Self(7)
     alias RPAR = Self(8)
@@ -98,6 +101,10 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "ENDMARKER"
         elif self == Kind.NEWLINE:
             return "NEWLINE"
+        elif self == Kind.STRING:
+            return "STRING"
+        elif self == Kind.NAME:
+            return "NAME"
         elif self == Kind.BinOp:
             return "BinOp"
         return "UNKNOWN"
@@ -297,6 +304,9 @@ struct TokenGenerator:
         return ""
 
     fn next_token(inout self) raises -> Token:
+        var re = Python.import_module("re2")
+        var regex_name = re.compile("\\w+")
+        var regex_string = re.compile("'.*?'|\".*?\"")
         alias single_char_ops = InlineList[String, 25](
             "+",
             "-",
@@ -332,17 +342,35 @@ struct TokenGenerator:
         # skip whitespaces
         while c == " ":
             c = self.next_char()
-        if c in single_char_ops:
+        var ord_c = ord(c)
+        var pos = self.pos - 1
+
+        if c == "":
+            return Token(Kind.ENDMARKER, "", self.pos - 1, self.pos - 1)
+        elif c in single_char_ops:
             return Token(to_kind(c), c, self.pos - 1, self.pos)
-        elif isdigit(ord(c)):
-            var pos = self.pos - 1
+        elif isdigit(ord_c):
             var number = String(c)
             var fmt = Formatter(number)
             while isdigit(ord(self.peek_char())):
                 write_to(fmt, self.next_char())
             return Token(Kind.NUMBER, number, pos, pos + len(number))
-        elif c == "":
-            return Token(Kind.ENDMARKER, "", self.pos - 1, self.pos - 1)
+        elif ord_c == 39 or ord_c == 34:
+            var m = regex_string.`match`(self.code, pos)
+            if m:
+                var text = str(m.group(0))
+                self.pos = pos + len(text)
+                return Token(Kind.STRING, text, pos, self.pos)
+            else:
+                raise Error("invalid string")
+        elif isupper(ord_c) or islower(ord_c) or c == "_":
+            var m = regex_name.`match`(self.code, pos)
+            if m:
+                var text = str(m.group(0))
+                self.pos = pos + len(text)
+                return Token(Kind.NAME, text, pos, self.pos)
+            else:
+                raise Error("invalid name")
         else:
             raise Error("invalid character")
 
