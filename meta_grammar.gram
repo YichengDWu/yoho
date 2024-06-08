@@ -1,0 +1,51 @@
+start: grammar ENDMARKER { grammar }
+
+grammar: rules=rule+ { Grammar(rules) }
+
+rule: NAME ':' NEWLINE? rhs NL? { Rule(name.text, rhs)}
+
+rhs: 
+    | '|' alt NEWLINE rhs { Rhs(List(alt) + rhs.args)}
+    | '|' alt NEWLINE { Rhs(List(alt)) }
+    | alt NEWLINE { Rhs(List(alt)) }
+
+alt: 
+    | items action { Alt(items, action) } 
+    | items { Alt(items) }
+
+items: items=named_item+ { Items(items) }
+
+named_item: 
+    | NAME '=' item { NamedItem(item, name.text)}
+    | item { NamedItem(item) }
+    
+item: 
+    | atom '*' { Repeat0(atom) }
+    | atom '+' { Repeat1(atom) }
+    | sep=atom '.' node=atom '+' { Gather(sep.text, node) }
+    | atom 
+    
+atom: 
+    | '(' items ')' { Group(items.args) }
+    | NAME { Atom(name.text) } 
+    | STRING { Atom(string.text) }
+    
+
+action: '{' target '}' { target }
+
+target: 
+    | NAME target_atoms { Action(target_atoms, name)}
+    | target_atom { Action(target_atom) }
+
+target_atoms: 
+    | target_atom target_atoms { String(target_atom + ' ' + target_atoms) }
+    | target_atom 
+
+target_atom:
+    | NAME { String(name.text) }
+    | NUMBER { String(number.text) }
+    | ',' { String(', ') }
+    | '+' { String(' + ') }
+    | '(' { String('(') }
+    | ')' { String(')') }
+    | '.' { String('.')}

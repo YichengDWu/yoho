@@ -36,6 +36,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias CIRCUMFLEX = Self(32)
     alias AT = Self(49)
     alias EXCLAMATION = Self(54)
+    alias NL = Self(65)
 
     # Syntax node kinds
     alias BinOp = Kind(69)
@@ -101,6 +102,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "ENDMARKER"
         elif self == Kind.NEWLINE:
             return "NEWLINE"
+        elif self == Kind.NL:
+            return "NL"
         elif self == Kind.STRING:
             return "STRING"
         elif self == Kind.NAME:
@@ -180,18 +183,12 @@ fn K[s: StringLiteral]() raises -> Optional[Kind]:
         return Kind.NUMBER
     elif s == "NEWLINE":
         return Kind.NEWLINE
-    elif s == "LPAR":
-        return Kind.LPAR
-    elif s == "RPAR":
-        return Kind.RPAR
-    elif s == "PLUS":
-        return Kind.PLUS
-    elif s == "MINUS":
-        return Kind.MINUS
-    elif s == "STAR":
-        return Kind.STAR
-    elif s == "SLASH":
-        return Kind.SLASH
+    elif s == "NL":
+        return Kind.NL
+    elif s == "NAME":
+        return Kind.NAME
+    elif s == "STRING":
+        return Kind.STRING
 
     return None
 
@@ -346,7 +343,12 @@ struct TokenGenerator:
         var pos = self.pos - 1
 
         if c == "":
-            return Token(Kind.ENDMARKER, "", self.pos - 1, self.pos - 1)
+            return Token(Kind.ENDMARKER, "", pos, pos)
+        elif c == "\n":
+            if self.code[pos - 1] == "\n":  # TODO： handle"\n   \n"
+                return Token(Kind.NL, c, pos, pos + 1)
+            else:
+                return Token(Kind.NEWLINE, c, pos, pos + 1)
         elif c in single_char_ops:
             return Token(to_kind(c), c, self.pos - 1, self.pos)
         elif isdigit(ord_c):

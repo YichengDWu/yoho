@@ -1,0 +1,15 @@
+expr:
+    | expr '+' term { BinOp(expr, '+', term) }
+    | expr '-' term { BinOp(expr, '-', term) }
+    | term
+
+term:
+    | term '*' atom { BinOp(term, '*', atom) }
+    | term '/' atom { BinOp(term, '/', atom) }
+    | atom
+
+atom:
+    | NAME
+    | NUMBER
+    | '(' expr ')' { expr }
+
