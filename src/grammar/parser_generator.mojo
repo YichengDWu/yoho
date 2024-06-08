@@ -139,34 +139,34 @@ struct Parser:
 
 fn get_op_names() -> Dict[String, String]:
     var op_names = Dict[String, String]()
-    op_names["("] = "_lpar"
-    op_names[")"] = "_rpar"
-    op_names[","] = "_comma"
-    op_names[";"] = "_semicolon"
-    op_names["+"] = "_plus"
-    op_names["-"] = "_minus"
-    op_names["*"] = "_star"
-    op_names["/"] = "_slash"
-    op_names["["] = "_lsqb"
-    op_names["]"] = "_rsqb"
-    op_names[":"] = "_colon"
-    op_names["|"] = "_vbar"
-    op_names["&"] = "_ampersand"
-    op_names["!"] = "_bang"
-    op_names["<"] = "_less"
-    op_names[">"] = "_greater"
-    op_names["=="] = "_eqeq"
-    op_names["!="] = "_neq"
-    op_names["<="] = "_leq"
-    op_names[">="] = "_geq"
-    op_names["="] = "_equal"
-    op_names["."] = "_dot"
-    op_names["%"] = "_percent"
-    op_names["{"] = "_lbrace"
-    op_names["}"] = "_rbrace"
-    op_names["~"] = "_tilde"
-    op_names["^"] = "_circumflex"
-    op_names["@"] = "_at"
+    op_names["("] = "lpar"
+    op_names[")"] = "rpar"
+    op_names[","] = "comma"
+    op_names[";"] = "semicolon"
+    op_names["+"] = "plus"
+    op_names["-"] = "minus"
+    op_names["*"] = "star"
+    op_names["/"] = "slash"
+    op_names["["] = "lsqb"
+    op_names["]"] = "rsqb"
+    op_names[":"] = "colon"
+    op_names["|"] = "vbar"
+    op_names["&"] = "ampersand"
+    op_names["!"] = "bang"
+    op_names["<"] = "less"
+    op_names[">"] = "greater"
+    op_names["=="] = "eqeq"
+    op_names["!="] = "neq"
+    op_names["<="] = "leq"
+    op_names[">="] = "geq"
+    op_names["="] = "equal"
+    op_names["."] = "dot"
+    op_names["%"] = "percent"
+    op_names["{"] = "lbrace"
+    op_names["}"] = "rbrace"
+    op_names["~"] = "tilde"
+    op_names["^"] = "circumflex"
+    op_names["@"] = "at"
     return op_names
 
 
@@ -174,25 +174,29 @@ struct ParserGenerator:
     var grammar: GrammarNode
     var level: Int
     var OP_NAMES: Dict[String, String]
+    var top_level_variables: List[String]
 
     fn __init__(inout self, grammar: String) raises:
         var grammar_parser = GrammarParser(grammar)
         self.grammar = grammar_parser.start().value()
         self.level = 1
         self.OP_NAMES = get_op_names()
+        self.top_level_variables = List[String]()
 
     fn indent(self) -> String:
         return str("    ") * self.level
 
-    fn get_variable_name(inout self, item: GrammarNode) -> String:
+    fn get_variable_name(
+        inout self, item: GrammarNode, postfix: Optional[String] = None
+    ) -> String:
         var item_name = item.text  # user defined name
         if item_name:
-            return item_name
+            return item_name + postfix.value() if postfix else item_name
         var atom = item.args[0]
         var atom_name = atom.text
         var variable_name = atom_name.strip("'").lower()
         variable_name = self.OP_NAMES.get(variable_name, variable_name)
-        return variable_name
+        return variable_name + postfix.value() if postfix else variable_name
 
     fn generate(inout self, inout fmt: Formatter) raises:
         write_to(fmt, "# This file is generated from the following grammar:\n")
@@ -271,11 +275,10 @@ struct ParserGenerator:
             self.generate_alt(fmt, alt[])
         write_to(fmt, self.indent(), "return None\n")
         self.level -= 1
+        self.top_level_variables.clear()
 
     fn generate_alt(inout self, inout fmt: Formatter, alt: GrammarNode) raises:
         var level = self.level
-        write_to(fmt, self.indent(), "if True:\n")
-        self.level += 1
         var items = alt.args[0]
         self.generate_items(fmt, items)
 
@@ -285,7 +288,11 @@ struct ParserGenerator:
         if has_action:
             self.generate_action(fmt, alt.args[-1], items)
         elif len(items.args) == 1:
-            write_to(fmt, self.get_variable_name(items.args[0]), ".take()\n")
+            write_to(
+                fmt,
+                self.get_variable_name(items.args[0], str("_")),
+                ".take()\n",
+            )
         else:
             raise Error("Must have action for multiple items in an alt")
 
@@ -335,7 +342,9 @@ struct ParserGenerator:
         for item in items.args:
             var variable_name = self.get_variable_name(item[])
             res = re.sub(
-                "\\b" + variable_name + "\\b", variable_name + ".take()", res
+                "\\b" + variable_name + "\\b",
+                variable_name + str("_") + ".take()",
+                res,
             )
             res = str(res.replace(".take().", ".take()[]."))
         write_to(fmt, res)
@@ -345,8 +354,15 @@ struct ParserGenerator:
     ) raises:
         var atom = item.args[0]
         var atom_name = atom.text
-        var variable_name = self.get_variable_name(item)
-        write_to(fmt, self.indent(), "var ", variable_name, " = self.")
+        var variable_name = self.get_variable_name(item, str("_"))
+        if self.level == 3:
+            if variable_name in self.top_level_variables:
+                write_to(fmt, self.indent(), variable_name, " = self.")
+            else:
+                write_to(fmt, self.indent(), "var ", variable_name, " = self.")
+                self.top_level_variables.append(variable_name)
+        else:
+            write_to(fmt, self.indent(), "var ", variable_name, " = self.")
         if atom_name.as_bytes()[0] == 39 or atom_name == atom_name.upper():
             write_to(fmt, '_expect["', atom_name.strip("'"), '"]()\n')
         else:

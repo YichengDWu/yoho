@@ -161,44 +161,41 @@ struct Parser:
         fn _expr(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            if True:
-                var expr = self.expr()
-                if expr:
-                    var _plus = self._expect["+"]()
-                    if _plus:
-                        var term = self.term()
-                        if term:
-                            return Arc(
-                                NodeData(
-                                    Kind.BinOp,
-                                    expr.take(),
-                                    _plus.take(),
-                                    term.take(),
-                                )
+            var expr_ = self.expr()
+            if expr_:
+                var plus_ = self._expect["+"]()
+                if plus_:
+                    var term_ = self.term()
+                    if term_:
+                        return Arc(
+                            NodeData(
+                                Kind.BinOp,
+                                expr_.take(),
+                                plus_.take(),
+                                term_.take(),
                             )
+                        )
             self._reset(_mark)
 
-            if True:
-                var expr = self.expr()
-                if expr:
-                    var _minus = self._expect["-"]()
-                    if _minus:
-                        var term = self.term()
-                        if term:
-                            return Arc(
-                                NodeData(
-                                    Kind.BinOp,
-                                    expr.take(),
-                                    _minus.take(),
-                                    term.take(),
-                                )
+            expr_ = self.expr()
+            if expr_:
+                var minus_ = self._expect["-"]()
+                if minus_:
+                    var term_ = self.term()
+                    if term_:
+                        return Arc(
+                            NodeData(
+                                Kind.BinOp,
+                                expr_.take(),
+                                minus_.take(),
+                                term_.take(),
                             )
+                        )
             self._reset(_mark)
 
-            if True:
-                var term = self.term()
-                if term:
-                    return term.take()
+            var term_ = self.term()
+            if term_:
+                return term_.take()
             self._reset(_mark)
 
             return None
@@ -209,44 +206,41 @@ struct Parser:
         fn _term(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            if True:
-                var term = self.term()
-                if term:
-                    var _star = self._expect["*"]()
-                    if _star:
-                        var unary = self.unary()
-                        if unary:
-                            return Arc(
-                                NodeData(
-                                    Kind.BinOp,
-                                    term.take(),
-                                    _star.take(),
-                                    unary.take(),
-                                )
+            var term_ = self.term()
+            if term_:
+                var star_ = self._expect["*"]()
+                if star_:
+                    var unary_ = self.unary()
+                    if unary_:
+                        return Arc(
+                            NodeData(
+                                Kind.BinOp,
+                                term_.take(),
+                                star_.take(),
+                                unary_.take(),
                             )
+                        )
             self._reset(_mark)
 
-            if True:
-                var term = self.term()
-                if term:
-                    var _slash = self._expect["/"]()
-                    if _slash:
-                        var unary = self.unary()
-                        if unary:
-                            return Arc(
-                                NodeData(
-                                    Kind.BinOp,
-                                    term.take(),
-                                    _slash.take(),
-                                    unary.take(),
-                                )
+            term_ = self.term()
+            if term_:
+                var slash_ = self._expect["/"]()
+                if slash_:
+                    var unary_ = self.unary()
+                    if unary_:
+                        return Arc(
+                            NodeData(
+                                Kind.BinOp,
+                                term_.take(),
+                                slash_.take(),
+                                unary_.take(),
                             )
+                        )
             self._reset(_mark)
 
-            if True:
-                var unary = self.unary()
-                if unary:
-                    return unary.take()
+            var unary_ = self.unary()
+            if unary_:
+                return unary_.take()
             self._reset(_mark)
 
             return None
@@ -257,30 +251,27 @@ struct Parser:
         fn _unary(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            if True:
-                var _plus = self._expect["+"]()
-                if _plus:
-                    var unary = self.unary()
-                    if unary:
-                        return Arc(
-                            NodeData(Kind.UnaryOp, _plus.take(), unary.take())
-                        )
+            var plus_ = self._expect["+"]()
+            if plus_:
+                var unary_ = self.unary()
+                if unary_:
+                    return Arc(
+                        NodeData(Kind.UnaryOp, plus_.take(), unary_.take())
+                    )
             self._reset(_mark)
 
-            if True:
-                var _minus = self._expect["-"]()
-                if _minus:
-                    var unary = self.unary()
-                    if unary:
-                        return Arc(
-                            NodeData(Kind.UnaryOp, _minus.take(), unary.take())
-                        )
+            var minus_ = self._expect["-"]()
+            if minus_:
+                var unary_ = self.unary()
+                if unary_:
+                    return Arc(
+                        NodeData(Kind.UnaryOp, minus_.take(), unary_.take())
+                    )
             self._reset(_mark)
 
-            if True:
-                var atom = self.atom()
-                if atom:
-                    return atom.take()
+            var atom_ = self.atom()
+            if atom_:
+                return atom_.take()
             self._reset(_mark)
 
             return None
@@ -291,26 +282,23 @@ struct Parser:
         fn _atom(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            if True:
-                var name = self._expect["NAME"]()
-                if name:
-                    return name.take()
+            var name_ = self._expect["NAME"]()
+            if name_:
+                return name_.take()
             self._reset(_mark)
 
-            if True:
-                var number = self._expect["NUMBER"]()
-                if number:
-                    return number.take()
+            var number_ = self._expect["NUMBER"]()
+            if number_:
+                return number_.take()
             self._reset(_mark)
 
-            if True:
-                var _lpar = self._expect["("]()
-                if _lpar:
-                    var expr = self.expr()
-                    if expr:
-                        var _rpar = self._expect[")"]()
-                        if _rpar:
-                            return expr.take()
+            var lpar_ = self._expect["("]()
+            if lpar_:
+                var expr_ = self.expr()
+                if expr_:
+                    var rpar_ = self._expect[")"]()
+                    if rpar_:
+                        return expr_.take()
             self._reset(_mark)
 
             return None

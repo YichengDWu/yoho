@@ -33,8 +33,8 @@ fn test_parser() raises:
     var tree = p.expr()
 
     assert_true(tree)
-   # print(tree.value()[])
-    #print(tree.value()[].unparse())
+    print(tree.value()[])
+    print(tree.value()[].unparse())
     var node = tree.value()[].args[0]
     assert_equal(node[].text, "1")
     var node1 = tree.value()[].args[1]
