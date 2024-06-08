@@ -1,7 +1,21 @@
 # This file is generated from the following grammar:
-# expr:
-#     | expr '+' term { BinOp(expr, '+', term) }
-#     | expr '-' term { BinOp(expr, '-', term) }
+# expr: equality
+#
+# equality:
+#     | equality '==' relational { Compare(equality, '==', relational) }
+#     | equality '!=' relational { Compare(equality, '!=', relational) }
+#     | relational
+#
+# relational:
+#     | relational '<' add { Compare(relational, '<', add) }
+#     | relational '<=' add { Compare(relational, '<=', add) }
+#     | relational '>' add { Compare(relational, '>', add) }
+#     | relational '>=' add { Compare(relational, '>=', add) }
+#     | add
+#
+# add:
+#     | add '+' term { BinOp(add, '+', term) }
+#     | add '-' term { BinOp(add, '-', term) }
 #     | term
 #
 # term:
@@ -161,8 +175,143 @@ struct Parser:
         fn _expr(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            var expr_ = self.expr()
-            if expr_:
+            var equality_ = self.equality()
+            if equality_:
+                return equality_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_expr", _expr](self)
+
+    fn equality(inout self: Parser) raises -> Optional[Node]:
+        fn _equality(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var equality_ = self.equality()
+            if equality_:
+                var eqeq_ = self._expect["=="]()
+                if eqeq_:
+                    var relational_ = self.relational()
+                    if relational_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                equality_.take(),
+                                eqeq_.take(),
+                                relational_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            equality_ = self.equality()
+            if equality_:
+                var neq_ = self._expect["!="]()
+                if neq_:
+                    var relational_ = self.relational()
+                    if relational_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                equality_.take(),
+                                neq_.take(),
+                                relational_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            var relational_ = self.relational()
+            if relational_:
+                return relational_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize_left_rec["_equality", _equality](self)
+
+    fn relational(inout self: Parser) raises -> Optional[Node]:
+        fn _relational(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var relational_ = self.relational()
+            if relational_:
+                var less_ = self._expect["<"]()
+                if less_:
+                    var add_ = self.add()
+                    if add_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                relational_.take(),
+                                less_.take(),
+                                add_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            relational_ = self.relational()
+            if relational_:
+                var leq_ = self._expect["<="]()
+                if leq_:
+                    var add_ = self.add()
+                    if add_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                relational_.take(),
+                                leq_.take(),
+                                add_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            relational_ = self.relational()
+            if relational_:
+                var greater_ = self._expect[">"]()
+                if greater_:
+                    var add_ = self.add()
+                    if add_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                relational_.take(),
+                                greater_.take(),
+                                add_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            relational_ = self.relational()
+            if relational_:
+                var geq_ = self._expect[">="]()
+                if geq_:
+                    var add_ = self.add()
+                    if add_:
+                        return Arc(
+                            NodeData(
+                                Kind.Compare,
+                                relational_.take(),
+                                geq_.take(),
+                                add_.take(),
+                            )
+                        )
+            self._reset(_mark)
+
+            var add_ = self.add()
+            if add_:
+                return add_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize_left_rec["_relational", _relational](self)
+
+    fn add(inout self: Parser) raises -> Optional[Node]:
+        fn _add(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var add_ = self.add()
+            if add_:
                 var plus_ = self._expect["+"]()
                 if plus_:
                     var term_ = self.term()
@@ -170,15 +319,15 @@ struct Parser:
                         return Arc(
                             NodeData(
                                 Kind.BinOp,
-                                expr_.take(),
+                                add_.take(),
                                 plus_.take(),
                                 term_.take(),
                             )
                         )
             self._reset(_mark)
 
-            expr_ = self.expr()
-            if expr_:
+            add_ = self.add()
+            if add_:
                 var minus_ = self._expect["-"]()
                 if minus_:
                     var term_ = self.term()
@@ -186,7 +335,7 @@ struct Parser:
                         return Arc(
                             NodeData(
                                 Kind.BinOp,
-                                expr_.take(),
+                                add_.take(),
                                 minus_.take(),
                                 term_.take(),
                             )
@@ -200,7 +349,7 @@ struct Parser:
 
             return None
 
-        return memoize_left_rec["_expr", _expr](self)
+        return memoize_left_rec["_add", _add](self)
 
     fn term(inout self: Parser) raises -> Optional[Node]:
         fn _term(inout self: Parser) raises -> Optional[Node]:

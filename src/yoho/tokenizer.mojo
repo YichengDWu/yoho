@@ -32,6 +32,10 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias PERCENT = Self(24)
     alias LBRACE = Self(25)
     alias RBRACE = Self(26)
+    alias EQEQUAL = Self(27)
+    alias NOTEQUAL = Self(28)
+    alias LESSEQUAL = Self(29)
+    alias GREATEREQUAL = Self(30)
     alias TILDE = Self(31)
     alias CIRCUMFLEX = Self(32)
     alias AT = Self(49)
@@ -41,6 +45,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     # Syntax node kinds
     alias BinOp = Kind(69)
     alias UnaryOp = Self(70)
+    alias Compare = Self(71)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -89,6 +94,14 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "LBRACE"
         elif self == Kind.RBRACE:
             return "RBRACE"
+        elif self == Kind.EQEQUAL:
+            return "EQEQUAL"
+        elif self == Kind.NOTEQUAL:
+            return "NOTEQUAL"
+        elif self == Kind.LESSEQUAL:
+            return "LESSEQUAL"
+        elif self == Kind.GREATEREQUAL:
+            return "GREATEREQUAL"
         elif self == Kind.TILDE:
             return "TILDE"
         elif self == Kind.CIRCUMFLEX:
@@ -113,6 +126,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "BinOp"
         elif self == Kind.UnaryOp:
             return "UnaryOp"
+        elif self == Kind.Compare:
+            return "Compare"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:
@@ -164,6 +179,14 @@ fn to_kind(kind: String) raises -> Kind:
         return Kind.LBRACE
     elif kind == "}":
         return Kind.RBRACE
+    elif kind == "==":
+        return Kind.EQEQUAL
+    elif kind == "!=":
+        return Kind.NOTEQUAL
+    elif kind == "<=":
+        return Kind.LESSEQUAL
+    elif kind == ">=":
+        return Kind.GREATEREQUAL
     elif kind == "~":
         return Kind.TILDE
     elif kind == "^":
@@ -307,6 +330,7 @@ struct TokenGenerator:
         var re = Python.import_module("re2")
         var regex_name = re.compile("\\w+")
         var regex_string = re.compile("'.*?'|\".*?\"")
+        alias double_char_ops = InlineList[String, 4]("==", "!=", "<=", ">=")
         alias single_char_ops = InlineList[String, 25](
             "+",
             "-",
@@ -343,6 +367,7 @@ struct TokenGenerator:
         while c == " ":
             c = self.next_char()
         var ord_c = ord(c)
+        var next_c = self.peek_char()
         var pos = self.pos - 1
 
         if c == "":
@@ -352,6 +377,9 @@ struct TokenGenerator:
                 return Token(Kind.NL, c, pos, pos + 1)
             else:
                 return Token(Kind.NEWLINE, c, pos, pos + 1)
+        elif (c + next_c) in double_char_ops:
+            self.pos += 1
+            return Token(to_kind(c + next_c), c + next_c, pos, pos + 2)
         elif c in single_char_ops:
             return Token(to_kind(c), c, self.pos - 1, self.pos)
         elif isdigit(ord_c):

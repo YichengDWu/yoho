@@ -1,6 +1,20 @@
-expr:
-    | expr '+' term { BinOp(expr, '+', term) }
-    | expr '-' term { BinOp(expr, '-', term) }
+expr: equality
+
+equality:
+    | equality '==' relational { Compare(equality, '==', relational) }
+    | equality '!=' relational { Compare(equality, '!=', relational) }
+    | relational
+
+relational:
+    | relational '<' add { Compare(relational, '<', add) }
+    | relational '<=' add { Compare(relational, '<=', add) }
+    | relational '>' add { Compare(relational, '>', add) }
+    | relational '>=' add { Compare(relational, '>=', add) }
+    | add
+
+add:
+    | add '+' term { BinOp(add, '+', term) }
+    | add '-' term { BinOp(add, '-', term) }
     | term
 
 term:

@@ -12,6 +12,6 @@ test: yoho
 	./test.sh
 
 clean:
-	rm -f yoho tmp*
+	rm -f yoho tmp* test/temp*
 
 .PHONY: test clean 

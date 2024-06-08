@@ -104,9 +104,28 @@ fn test_name() raises:
     assert_equal(token.kind, Kind.NAME)
 
 
+fn test_double_char() raises:
+    var double_char_ops = List[String](
+        "==",
+        "!=",
+        "<=",
+        ">=",
+        "<",
+        ">",
+    )
+
+    for op in double_char_ops:
+        var code = "1 " + op[] + " 2"
+        var tokenizer = Tokenizer(code)
+        var token = tokenizer.bump()
+        token = tokenizer.bump()
+        assert_equal(token.text, op[])
+
+
 def main():
     test_peek_next_char()
     test_peek_next_token()
     test_single_char()
     test_string()
     test_name()
+    test_double_char()
