@@ -50,4 +50,10 @@ assert 0 '1>=2'
 assert 3 "1\n2\n3"
 assert 2 "1+3\n3<1\n3-1"
 
+assert 3 "a=3\na"
+assert 8 "a=3\nz=5\na+z"
+assert 3 "foo=3\nfoo"
+assert 8 "foo123=3\nbar=5\nfoo123+bar"
+assert 6 "a=b=3\na+b"
+
 echo OK 

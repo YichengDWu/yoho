@@ -92,7 +92,22 @@ fn test_single_char() raises:
         assert_equal(token.text, char[])
 
 
+fn test_assign() raises:
+    var code = "a=3"
+    var p = Parser(code)
+    var tree = p.assign()
+    assert_true(tree)
+    print(tree.value()[])
+    assert_equal(tree.value()[].kind, Kind.Assign)
+    var name = tree.value()[].args[0]
+    var value = tree.value()[].args[1]
+    assert_equal(name[].text, "a")
+    assert_equal(value[].text, "3")
+    _ = tree
+
+
 def main():
     test_basic()
     test_parser()
     test_single_char()
+    test_assign()

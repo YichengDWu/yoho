@@ -7,7 +7,11 @@
 #
 # statement: expr NEWLINE { expr }
 #
-# expr: equality
+# expr: assign
+#
+# assign:
+#     | NAME '=' assign { Assign(name, assign) }
+#     | equality
 #
 # equality:
 #     | equality '==' relational { Compare(equality, '==', relational) }
@@ -238,6 +242,30 @@ struct Parser:
         fn _expr(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
+            var assign_ = self.assign()
+            if assign_:
+                return assign_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_expr", _expr](self)
+
+    fn assign(inout self: Parser) raises -> Optional[Node]:
+        fn _assign(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var name_ = self._expect["NAME"]()
+            if name_:
+                var equal_ = self._expect["="]()
+                if equal_:
+                    var assign_ = self.assign()
+                    if assign_:
+                        return Arc(
+                            NodeData(Kind.Assign, name_.take(), assign_.take())
+                        )
+            self._reset(_mark)
+
             var equality_ = self.equality()
             if equality_:
                 return equality_.take()
@@ -245,7 +273,7 @@ struct Parser:
 
             return None
 
-        return memoize["_expr", _expr](self)
+        return memoize["_assign", _assign](self)
 
     fn equality(inout self: Parser) raises -> Optional[Node]:
         fn _equality(inout self: Parser) raises -> Optional[Node]:

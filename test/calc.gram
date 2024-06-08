@@ -6,7 +6,11 @@ statements:
 
 statement: expr NEWLINE { expr }
 
-expr: equality
+expr: assign
+
+assign:
+    | NAME '=' assign { Assign(name, assign) }
+    | equality
 
 equality:
     | equality '==' relational { Compare(equality, '==', relational) }

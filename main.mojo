@@ -17,7 +17,6 @@ fn main() raises:
     var codegen = CodeGen()
     if ast:
         codegen.gen(fmt, ast.value())
-        write_to(fmt, "    ret\n")
     else:
         raise Error("Invalid expression")
     src.close()
