@@ -11,6 +11,14 @@ struct NodeData(EqualityComparable, Movable, Stringable, Representable):
     var span: Span
     var args: List[Arc[NodeData]]
 
+    fn __init__(inout self, kind: Kind, args: List[Arc[NodeData]]):
+        self.kind = kind
+        self.text = ""
+        var start = args[0][].span.start
+        var end = args[-1][].span.end
+        self.span = Span(start, end)
+        self.args = args
+
     fn __init__(inout self, owned other: Token):
         self.kind = other.kind
         self.text = other.text

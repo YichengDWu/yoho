@@ -46,6 +46,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias BinOp = Kind(69)
     alias UnaryOp = Self(70)
     alias Compare = Self(71)
+    alias Block = Self(72)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -128,6 +129,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "UnaryOp"
         elif self == Kind.Compare:
             return "Compare"
+        elif self == Kind.Block:
+            return "Block"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:

@@ -1,3 +1,11 @@
+program: statements ENDMARKER { statements }
+
+statements:
+    | statement statements { Block(List(statement) + statements.args) }
+    | statement { Block(List(statement)) }
+
+statement: expr NEWLINE { expr }
+
 expr: equality
 
 equality:

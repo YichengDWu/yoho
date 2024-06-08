@@ -30,7 +30,14 @@ struct CodeGen:
     ) raises -> String:
         var _node = node
         var kind = _node[].kind
-        if kind == Kind.BinOp:
+
+        if kind == Kind.Block:
+            var res = String()
+            for statement in _node[].args:
+                res = self._gen(fmt, statement[])
+            return res
+
+        elif kind == Kind.BinOp:
             var left_ref = self._gen(fmt, _node[].args[0])
             var right_ref = self._gen(fmt, _node[].args[2])
             var op = _node[].args[1]

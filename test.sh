@@ -3,7 +3,8 @@ assert() {
     expected="$1"
     input="$2"
 
-    ./yoho "$input" > tmp.s
+    echo -e "$input" > tmp.mojo
+    ./yoho tmp.mojo tmp.s
     riscv64-unknown-elf-gcc -static -o tmp tmp.s
     ./tmp
     actual="$?"
@@ -45,5 +46,8 @@ assert 0 '1>2'
 assert 1 '1>=0'
 assert 1 '1>=1'
 assert 0 '1>=2'
+
+assert 3 "1\n2\n3"
+assert 2 "1+3\n3<1\n3-1"
 
 echo OK 

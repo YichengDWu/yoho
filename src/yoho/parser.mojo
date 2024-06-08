@@ -1,4 +1,12 @@
 # This file is generated from the following grammar:
+# program: statements ENDMARKER { statements }
+#
+# statements:
+#     | statement statements { Block(List(statement) + statements.args) }
+#     | statement { Block(List(statement)) }
+#
+# statement: expr NEWLINE { expr }
+#
 # expr: equality
 #
 # equality:
@@ -169,7 +177,62 @@ struct Parser:
 
     @always_inline
     fn parse(inout self: Parser) raises -> Optional[Node]:
-        return self.expr()
+        return self.program()
+
+    fn program(inout self: Parser) raises -> Optional[Node]:
+        fn _program(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var statements_ = self.statements()
+            if statements_:
+                var endmarker_ = self._expect["ENDMARKER"]()
+                if endmarker_:
+                    return statements_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_program", _program](self)
+
+    fn statements(inout self: Parser) raises -> Optional[Node]:
+        fn _statements(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var statement_ = self.statement()
+            if statement_:
+                var statements_ = self.statements()
+                if statements_:
+                    return Arc(
+                        NodeData(
+                            Kind.Block,
+                            List(statement_.take()) + statements_.take()[].args,
+                        )
+                    )
+            self._reset(_mark)
+
+            statement_ = self.statement()
+            if statement_:
+                return Arc(NodeData(Kind.Block, List(statement_.take())))
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_statements", _statements](self)
+
+    fn statement(inout self: Parser) raises -> Optional[Node]:
+        fn _statement(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var expr_ = self.expr()
+            if expr_:
+                var newline_ = self._expect["NEWLINE"]()
+                if newline_:
+                    return expr_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_statement", _statement](self)
 
     fn expr(inout self: Parser) raises -> Optional[Node]:
         fn _expr(inout self: Parser) raises -> Optional[Node]:
