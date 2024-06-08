@@ -1,13 +1,23 @@
+# This file is generated from the following grammar:
+# expr:
+#     | expr '+' term { BinOp(expr, '+', term) }
+#     | expr '-' term { BinOp(expr, '-', term) }
+#     | term
+#
+# term:
+#     | term '*' atom { BinOp(term, '*', atom) }
+#     | term '/' atom { BinOp(term, '/', atom) }
+#     | atom
+#
+# atom:
+#     | NAME
+#     | NUMBER
+#     | '(' expr ')' { expr }
+#
+
 from .tokenizer import Kind, K, Token, Tokenizer
 from .node import NodeData, Node
 from collections.dict import KeyElement
-
-
-# Grammar
-# Note it right-associative for now
-# expr: expr '+' term | expr '-' term | term
-# term: term '*' atom | term '/' atom | atom
-# atom: NAME | NUMBER | '(' expr ')'
 
 
 @value
@@ -27,40 +37,40 @@ struct CacheValue(Representable):
 
 @value
 struct CacheKey(KeyElement, Representable):
-    var mark: Int
+    var _mark: Int
     var id: StringLiteral  # function + arg
 
-    fn __init__(inout self, mark: Int, id: StringLiteral):
-        self.mark = mark
+    fn __init__(inout self, _mark: Int, id: StringLiteral):
+        self._mark = _mark
         self.id = id
 
     fn __hash__(self) -> Int:
-        return hash(String.format_sequence(self.mark, ",", self.id))
+        return hash(String.format_sequence(self._mark, ",", self.id))
 
     fn __eq__(self, other: CacheKey) -> Bool:
-        return self.mark == other.mark
+        return self._mark == other._mark
 
     fn __ne__(self, other: CacheKey) -> Bool:
         return not self == other
 
     fn __repr__(self) -> String:
-        return String.format_sequence("(", self.mark, ", ", self.id, ")")
+        return String.format_sequence("(", self._mark, ", ", self.id, ")")
 
 
 fn memoize[
     id: StringLiteral, unmemoized: fn (inout Parser) raises -> Optional[Node]
 ](inout self: Parser) raises -> Optional[Node]:
-    var mark = self.mark()
-    var key = CacheKey(mark, id)
+    var _mark = self._mark()
+    var key = CacheKey(_mark, id)
     var value = self.cache.get(key)
     if value:
         var tree = value.value().node
         var endmark = value.value().endmark
-        self.reset(endmark)
+        self._reset(endmark)
         return tree
 
     var tree = unmemoized(self)
-    var endmark = self.mark()
+    var endmark = self._mark()
     self.cache[key] = CacheValue(tree, endmark)
     return tree
 
@@ -68,37 +78,37 @@ fn memoize[
 fn memoize_left_rec[
     id: StringLiteral, unmemoized: fn (inout Parser) raises -> Optional[Node]
 ](inout self: Parser) raises -> Optional[Node]:
-    var mark = self.mark()
-    var key = CacheKey(mark, id)
+    var _mark = self._mark()
+    var key = CacheKey(_mark, id)
     var value = self.cache.get(key)
     if value:
         var tree = value.value().node
         var endmark = value.value().endmark
-        self.reset(endmark)
+        self._reset(endmark)
         return tree
 
     # prime the cache a failure
-    self.cache[key] = CacheValue(None, mark)
+    self.cache[key] = CacheValue(None, _mark)
     var lastresult = Optional[Node](None)
-    var lastmark = mark
+    var lastmark = _mark
 
     while True:
-        self.reset(mark)
+        self._reset(_mark)
         var result = unmemoized(self)
-        var endmark = self.mark()
+        var endmark = self._mark()
         if endmark <= lastmark:
             break
         lastresult, lastmark = result, endmark
-        self.cache[key] = CacheValue(result, endmark)
+        self.cache[key] = CacheValue(lastresult, lastmark)
 
-    self.reset(lastmark)
+    self._reset(lastmark)
     var tree = lastresult
-    var endmark = mark
+    var endmark = _mark
 
     if tree:
-        endmark = self.mark()
+        endmark = self._mark()
     else:
-        self.reset(mark)
+        self._reset(_mark)
 
     self.cache[key] = CacheValue(tree, endmark)
     return tree
@@ -118,15 +128,15 @@ struct Parser:
         self.cache = Dict[CacheKey, CacheValue]()
 
     @always_inline
-    fn mark(self) -> Int:
+    fn _mark(self) -> Int:
         return self.tokenizer.mark()
 
     @always_inline
-    fn reset(inout self, mark: Int):
-        self.tokenizer.reset(mark)
+    fn _reset(inout self, _mark: Int):
+        self.tokenizer.reset(_mark)
 
-    fn expect[arg: StringLiteral](inout self: Parser) raises -> Optional[Node]:
-        fn _expect[
+    fn _expect[arg: StringLiteral](inout self) raises -> Optional[Node]:
+        fn __expect[
             arg: StringLiteral
         ](inout self: Parser) raises -> Optional[Node]:
             var token = self.tokenizer.peek()
@@ -136,121 +146,134 @@ struct Parser:
                 return Node(self.tokenizer.bump())
             return None
 
-        return memoize[arg, _expect[arg]](self)
+        return memoize[arg, __expect[arg]](self)
+
+    @always_inline
+    fn parse(inout self: Parser) raises -> Optional[Node]:
+        return self.expr()
 
     fn expr(inout self: Parser) raises -> Optional[Node]:
-        # expr: expr '+' term {Node(BinOP, expr, plus, term)}
-        #     | expr '-' term {Node(BinOP, expr, minus, term)}
-        #     | term
         fn _expr(inout self: Parser) raises -> Optional[Node]:
-            var mark = self.mark()
+            var _mark = self._mark()
 
-            var expr = self.expr()
-            if expr:
-                var plus = self.expect["+"]()
-                if plus:
-                    var term = self.term()
-                    if term:
-                        return Arc(
-                            NodeData(
-                                Kind.BinOp,
-                                expr.take(),
-                                plus.take(),
-                                term.take(),
-                            )
-                        )
-
-            self.reset(mark)
-
-            var expr1 = self.expr()
-            if expr1:
-                var minus = self.expect["-"]()
-                if minus:
-                    var term1 = self.term()
-                    if term1:
-                        return Arc(
-                            NodeData(
-                                Kind.BinOp,
-                                expr1.take(),
-                                minus.take(),
-                                term1.take(),
-                            )
-                        )
-            self.reset(mark)
-
-            var term2 = self.term()
-            if term2:
-                return term2
-            self.reset(mark)
-            return None
-
-        return memoize_left_rec["expr", _expr](self)
-
-    fn term(inout self: Parser) raises -> Optional[Node]:
-        # term: term `*` atom {Node(BINOP, term, star, atom)}
-        #     | term `/` atom {Node(BINOP, term, slash, atom)}
-        #     | atom
-        fn _term(inout self: Parser) raises -> Optional[Node]:
-            var mark = self.mark()
-            var term = self.term()
-            if term:
-                var star = self.expect["*"]()
-                if star:
-                    var atom = self.atom()
-                    if atom:
-                        return Arc(
-                            NodeData(
-                                Kind.BinOp,
-                                term.take(),
-                                star.take(),
-                                atom.take(),
-                            )
-                        )
-            self.reset(mark)
-
-            var term1 = self.term()
-            if term1:
-                var slash = self.expect["/"]()
-                if slash:
-                    var atom1 = self.atom()
-                    if atom1:
-                        return Arc(
-                            NodeData(
-                                Kind.BinOp,
-                                term1.take(),
-                                slash.take(),
-                                atom1.take(),
-                            )
-                        )
-            self.reset(mark)
-
-            var atom2 = self.atom()
-            if atom2:
-                return atom2
-            self.reset(mark)
-
-            return None
-
-        return memoize_left_rec["term", _term](self)
-
-    fn atom(inout self: Parser) raises -> Optional[Node]:
-        # atom: NUMBER
-        #     | '(' expr ')' {expr}
-        fn _atom(inout self: Parser) raises -> Optional[Node]:
-            var mark = self.mark()
-
-            var number = self.expect["NUMBER"]()
-            if number:
-                return number.take()
-            self.reset(mark)
-
-            if self.expect["("]():
+            if True:
                 var expr = self.expr()
                 if expr:
-                    if self.expect[")"]():
-                        return expr
-            self.reset(mark)
+                    var _plus = self._expect["+"]()
+                    if _plus:
+                        var term = self.term()
+                        if term:
+                            return Arc(
+                                NodeData(
+                                    Kind.BinOp,
+                                    expr.take(),
+                                    _plus.take(),
+                                    term.take(),
+                                )
+                            )
+            self._reset(_mark)
+
+            if True:
+                var expr = self.expr()
+                if expr:
+                    var _minus = self._expect["-"]()
+                    if _minus:
+                        var term = self.term()
+                        if term:
+                            return Arc(
+                                NodeData(
+                                    Kind.BinOp,
+                                    expr.take(),
+                                    _minus.take(),
+                                    term.take(),
+                                )
+                            )
+            self._reset(_mark)
+
+            if True:
+                var term = self.term()
+                if term:
+                    return term.take()
+            self._reset(_mark)
 
             return None
 
-        return memoize["atom", _atom](self)
+        return memoize_left_rec["_expr", _expr](self)
+
+    fn term(inout self: Parser) raises -> Optional[Node]:
+        fn _term(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            if True:
+                var term = self.term()
+                if term:
+                    var _star = self._expect["*"]()
+                    if _star:
+                        var atom = self.atom()
+                        if atom:
+                            return Arc(
+                                NodeData(
+                                    Kind.BinOp,
+                                    term.take(),
+                                    _star.take(),
+                                    atom.take(),
+                                )
+                            )
+            self._reset(_mark)
+
+            if True:
+                var term = self.term()
+                if term:
+                    var _slash = self._expect["/"]()
+                    if _slash:
+                        var atom = self.atom()
+                        if atom:
+                            return Arc(
+                                NodeData(
+                                    Kind.BinOp,
+                                    term.take(),
+                                    _slash.take(),
+                                    atom.take(),
+                                )
+                            )
+            self._reset(_mark)
+
+            if True:
+                var atom = self.atom()
+                if atom:
+                    return atom.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize_left_rec["_term", _term](self)
+
+    fn atom(inout self: Parser) raises -> Optional[Node]:
+        fn _atom(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            if True:
+                var name = self._expect["NAME"]()
+                if name:
+                    return name.take()
+            self._reset(_mark)
+
+            if True:
+                var number = self._expect["NUMBER"]()
+                if number:
+                    return number.take()
+            self._reset(_mark)
+
+            if True:
+                var _lpar = self._expect["("]()
+                if _lpar:
+                    var expr = self.expr()
+                    if expr:
+                        var _rpar = self._expect[")"]()
+                        if _rpar:
+                            return expr.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_atom", _atom](self)
