@@ -5,7 +5,9 @@
 #     | statement statements { Block(List(statement) + statements.args) }
 #     | statement { Block(List(statement)) }
 #
-# statement: expr NEWLINE { expr }
+# statement:
+#     | 'return' expr NEWLINE { Return(expr) }
+#     | expr NEWLINE { expr }
 #
 # expr: assign
 #
@@ -226,6 +228,15 @@ struct Parser:
     fn statement(inout self: Parser) raises -> Optional[Node]:
         fn _statement(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
+
+            var return_ = self._expect["return"]()
+            if return_:
+                var expr_ = self.expr()
+                if expr_:
+                    var newline_ = self._expect["NEWLINE"]()
+                    if newline_:
+                        return Arc(NodeData(Kind.Return, expr_.take()))
+            self._reset(_mark)
 
             var expr_ = self.expr()
             if expr_:

@@ -19,6 +19,9 @@ struct NodeData(EqualityComparable, Movable, Stringable, Representable):
         self.span = Span(start, end)
         self.args = args
 
+    fn __init__(inout self, kind: Kind, arg: Arc[NodeData]):
+        self = Self(kind, List[Arc[NodeData]](arg))
+
     fn __init__(inout self, owned other: Token):
         self.kind = other.kind
         self.text = other.text

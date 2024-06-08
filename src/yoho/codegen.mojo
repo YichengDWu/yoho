@@ -54,10 +54,10 @@ struct CodeGen:
         var aligned_stack_size = self.align_to(self.stack_size)
         if self.stack_size:
             write_to(fmt, "    add sp, sp, -", aligned_stack_size, "\n")
-        var reg = self._gen(fmt, node)
+        _ = self._gen(fmt, node)
+        write_to(fmt, ".L.return:\n")
         if self.stack_size:
             write_to(fmt, "    add sp, sp, ", aligned_stack_size, "\n")
-        write_to(fmt, "    mv a0, ", reg, "\n")
         write_to(fmt, "    ret\n")
 
     fn _gen(
@@ -231,6 +231,15 @@ struct CodeGen:
             var offset = self.stack_size - self.symbol_table[variable_name]
             write_to(fmt, "    sd ", reg, ", ", offset, "(sp)\n")
             return reg
+
+        elif kind == Kind.Return:
+            if _node[].args:
+                var reg = self._gen(fmt, _node[].args[0])
+                write_to(fmt, "    mv a0, ", reg, "\n")
+                write_to(fmt, "    j .L.return\n")
+                return reg
+            else:
+                raise Error("return statement without value")
 
         elif kind == Kind.NAME:
             var var_name = _node[].text

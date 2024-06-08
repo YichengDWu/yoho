@@ -4,7 +4,9 @@ statements:
     | statement statements { Block(List(statement) + statements.args) }
     | statement { Block(List(statement)) }
 
-statement: expr NEWLINE { expr }
+statement:
+    | 'return' expr NEWLINE { Return(expr) }
+    | expr NEWLINE { expr }
 
 expr: assign
 
