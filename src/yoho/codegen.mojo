@@ -81,6 +81,17 @@ struct CodeGen:
             self.release_reg(right_ref)
             return left_ref
 
+        elif kind == Kind.UnaryOp:
+            var op = _node[].args[0]
+            var reg = self._gen(fmt, _node[].args[1])
+            if op[].text == "+":
+                return reg
+            elif op[].text == "-":
+                write_to(fmt, "    neg ", reg, ", ", reg, "\n")
+                return reg
+            else:
+                raise Error("unknown unary operator")
+
         elif kind == Kind.NUMBER:
             var reg = self.get_next_reg()
             write_to(fmt, "    li ", reg, ", ", _node[].text, "\n")

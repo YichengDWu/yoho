@@ -12,5 +12,8 @@ fn main() raises:
     var parser = Parser(argv()[1])
     var ast = parser.expr()
     var codegen = CodeGen()
-    codegen.gen(fmt, ast.value())
+    if ast:
+        codegen.gen(fmt, ast.value())
+    else:
+        raise Error("Invalid expression")
     write_to(fmt, "    ret\n")

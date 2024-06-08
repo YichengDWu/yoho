@@ -5,8 +5,13 @@
 #     | term
 #
 # term:
-#     | term '*' atom { BinOp(term, '*', atom) }
-#     | term '/' atom { BinOp(term, '/', atom) }
+#     | term '*' unary { BinOp(term, '*', unary) }
+#     | term '/' unary { BinOp(term, '/', unary) }
+#     | unary
+#
+# unary:
+#     | '+' unary { UnaryOp('+', unary) }
+#     | '-' unary { UnaryOp('-', unary) }
 #     | atom
 #
 # atom:
@@ -209,14 +214,14 @@ struct Parser:
                 if term:
                     var _star = self._expect["*"]()
                     if _star:
-                        var atom = self.atom()
-                        if atom:
+                        var unary = self.unary()
+                        if unary:
                             return Arc(
                                 NodeData(
                                     Kind.BinOp,
                                     term.take(),
                                     _star.take(),
-                                    atom.take(),
+                                    unary.take(),
                                 )
                             )
             self._reset(_mark)
@@ -226,16 +231,50 @@ struct Parser:
                 if term:
                     var _slash = self._expect["/"]()
                     if _slash:
-                        var atom = self.atom()
-                        if atom:
+                        var unary = self.unary()
+                        if unary:
                             return Arc(
                                 NodeData(
                                     Kind.BinOp,
                                     term.take(),
                                     _slash.take(),
-                                    atom.take(),
+                                    unary.take(),
                                 )
                             )
+            self._reset(_mark)
+
+            if True:
+                var unary = self.unary()
+                if unary:
+                    return unary.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize_left_rec["_term", _term](self)
+
+    fn unary(inout self: Parser) raises -> Optional[Node]:
+        fn _unary(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            if True:
+                var _plus = self._expect["+"]()
+                if _plus:
+                    var unary = self.unary()
+                    if unary:
+                        return Arc(
+                            NodeData(Kind.UnaryOp, _plus.take(), unary.take())
+                        )
+            self._reset(_mark)
+
+            if True:
+                var _minus = self._expect["-"]()
+                if _minus:
+                    var unary = self.unary()
+                    if unary:
+                        return Arc(
+                            NodeData(Kind.UnaryOp, _minus.take(), unary.take())
+                        )
             self._reset(_mark)
 
             if True:
@@ -246,7 +285,7 @@ struct Parser:
 
             return None
 
-        return memoize_left_rec["_term", _term](self)
+        return memoize["_unary", _unary](self)
 
     fn atom(inout self: Parser) raises -> Optional[Node]:
         fn _atom(inout self: Parser) raises -> Optional[Node]:

@@ -40,6 +40,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
 
     # Syntax node kinds
     alias BinOp = Kind(69)
+    alias UnaryOp = Self(70)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -110,6 +111,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "NAME"
         elif self == Kind.BinOp:
             return "BinOp"
+        elif self == Kind.UnaryOp:
+            return "UnaryOp"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:

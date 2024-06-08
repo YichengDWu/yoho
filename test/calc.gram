@@ -4,8 +4,13 @@ expr:
     | term
 
 term:
-    | term '*' atom { BinOp(term, '*', atom) }
-    | term '/' atom { BinOp(term, '/', atom) }
+    | term '*' unary { BinOp(term, '*', unary) }
+    | term '/' unary { BinOp(term, '/', unary) }
+    | unary
+
+unary:
+    | '+' unary { UnaryOp('+', unary) }
+    | '-' unary { UnaryOp('-', unary) }
     | atom
 
 atom:
