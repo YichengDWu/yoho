@@ -2,8 +2,8 @@
 # program: statements ENDMARKER { statements }
 #
 # statements:
-#     | statement statements { Block(List(statement) + statements.args) }
-#     | statement { Block(List(statement)) }
+#     | statement NL* statements { Block(List(statement) + statements.args) }
+#     | statement NL* { Block(List(statement)) }
 #
 # statement:
 #     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
@@ -208,6 +208,11 @@ struct Parser:
 
             var statement_ = self.statement()
             if statement_:
+                var nl_ = Optional(List[Node]())
+                var nl__elem = self._expect["NL"]()
+                while nl__elem:
+                    nl_.value().append(nl__elem.value())
+                    nl__elem = self._expect["NL"]()
                 var statements_ = self.statements()
                 if statements_:
                     return Arc(
@@ -220,6 +225,11 @@ struct Parser:
 
             statement_ = self.statement()
             if statement_:
+                var nl_ = Optional(List[Node]())
+                var nl__elem = self._expect["NL"]()
+                while nl__elem:
+                    nl_.value().append(nl__elem.value())
+                    nl__elem = self._expect["NL"]()
                 return Arc(NodeData(Kind.Block, List(statement_.take())))
             self._reset(_mark)
 

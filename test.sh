@@ -67,5 +67,6 @@ assert 2 'if 2-1:\n    return 2\nreturn 3'
 assert 4 'if 0:\n    1\n    2\n    return 3\nelse:\n    return 4'
 assert 3 'if 1:\n    1\n    2\n    return 3\nelse:\n    return 4'
 assert 0 'x = 10\ny = 20\nif x == 10:\n    x = 5\n    if y == 20:\n        x = 0\nreturn x'
+assert 4 'if 0:\n    1\n    \n    \n    2\n    return 3\n     \n     \nelse:\n    return 4\n \na = 2\n'
 
 echo OK 

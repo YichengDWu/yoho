@@ -1,8 +1,8 @@
 program: statements ENDMARKER { statements }
 
 statements:
-    | statement statements { Block(List(statement) + statements.args) }
-    | statement { Block(List(statement)) }
+    | statement NL* statements { Block(List(statement) + statements.args) }
+    | statement NL* { Block(List(statement)) }
 
 statement:
     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }

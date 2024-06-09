@@ -304,7 +304,6 @@ struct ParserGenerator:
     ) raises:
         for item in items.args:
             self.generate_item(fmt, item[])
-            self.level += 1
 
     fn generate_action(
         inout self,
@@ -353,22 +352,77 @@ struct ParserGenerator:
         inout self, inout fmt: Formatter, item: GrammarNode
     ) raises:
         var atom = item.args[0]
-        var atom_name = atom.text
         var variable_name = self.get_variable_name(item, str("_"))
         if self.level == 3:
             if variable_name in self.top_level_variables:
-                write_to(fmt, self.indent(), variable_name, " = self.")
+                write_to(fmt, self.indent(), variable_name, " = ")
             else:
-                write_to(fmt, self.indent(), "var ", variable_name, " = self.")
+                write_to(fmt, self.indent(), "var ", variable_name, " = ")
                 self.top_level_variables.append(variable_name)
         else:
-            write_to(fmt, self.indent(), "var ", variable_name, " = self.")
-        if atom_name.as_bytes()[0] == 39 or atom_name == atom_name.upper():
-            write_to(fmt, '_expect["', atom_name.strip("'"), '"]()\n')
-        else:
-            write_to(fmt, atom_name, "()\n")
-        write_to(fmt, self.indent(), "if ", variable_name, ":\n")
+            write_to(fmt, self.indent(), "var ", variable_name, " = ")
+
+        if atom.kind == GrammarKind.Atom:
+            self.generate_call(fmt, atom)
+            write_to(fmt, self.indent(), "if ", variable_name, ":\n")
+            self.level += 1
+
+        elif atom.kind == GrammarKind.Repeat0:
+            write_to(fmt, "Optional(List[Node]())\n")
+            write_to(fmt, self.indent(), "var ", variable_name, "_elem = ")
+            self.generate_call(fmt, atom)
+            write_to(fmt, self.indent(), "while ", variable_name, "_elem:\n")
+            write_to(
+                fmt,
+                self.indent(),
+                "    ",
+                variable_name,
+                ".value().append(",
+                variable_name,
+                "_elem.value())\n",
+            )
+            write_to(fmt, self.indent(), "    ", variable_name, "_elem = ")
+            self.generate_call(fmt, atom)
+
+        elif atom.kind == GrammarKind.Repeat1:
+            write_to(fmt, "Optional(List[Node]())\n")
+            write_to(fmt, self.indent(), "var ", variable_name, "_elem = ")
+            self.generate_call(fmt, atom)
+            write_to(fmt, self.indent(), "if ", variable_name, "_elem:\n")
+            self.level += 1
+            write_to(
+                fmt,
+                self.indent(),
+                variable_name,
+                ".value().append(",
+                variable_name,
+                "_elem.value())\n",
+            )
+            write_to(fmt, self.indent(), variable_name, "_elem = ")
+            self.generate_call(fmt, atom)
+            write_to(fmt, self.indent(), "while ", variable_name, "_elem:\n")
+            write_to(
+                fmt,
+                self.indent(),
+                "    ",
+                variable_name,
+                ".value().append(",
+                variable_name,
+                "_elem.value())\n",
+            )
+            write_to(fmt, self.indent(), "    ", variable_name, "_elem = ")
+            self.generate_call(fmt, atom)
+
         return
+
+    fn generate_call(
+        inout self, inout fmt: Formatter, atom: GrammarNode
+    ) raises:
+        write_to(fmt, "self.")
+        if atom.text.as_bytes()[0] == 39 or atom.text == atom.text.upper():
+            write_to(fmt, '_expect["', atom.text.strip("'"), '"]()\n')
+        else:
+            write_to(fmt, atom.text, "()\n")
 
     fn is_left_recursive(self, rule: GrammarNode) -> Bool:
         # Only check direct left recursion
