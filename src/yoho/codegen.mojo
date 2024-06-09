@@ -272,6 +272,29 @@ struct CodeGen:
                 return else_reg
             return body_reg
 
+        elif kind == Kind.While:
+            self.branch_counter += 1
+            var counter = self.branch_counter
+            var cond = _node[].args[0]
+            var body = _node[].args[1]
+
+            write_to(fmt, ".L.loop.", counter, ":\n")
+            var cond_reg = self._gen(fmt, cond)
+            write_to(
+                fmt,
+                "    beqz ",
+                cond_reg,
+                ", .L.exit.",
+                counter,
+                "\n",
+            )
+            self.release_reg(cond_reg)
+
+            var body_reg = self._gen(fmt, body)
+            write_to(fmt, "    j .L.loop.", counter, "\n")
+            write_to(fmt, ".L.exit.", counter, ":\n")
+            return body_reg
+
         elif kind == Kind.NAME:
             var var_name = _node[].text
             var reg = self.get_next_reg()

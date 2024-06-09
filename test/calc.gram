@@ -7,6 +7,7 @@ statements:
 statement:
     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
+    | 'while' test=expr ':' NEWLINE INDENT body=statements DEDENT { While(test, body) }
     | 'return' expr NEWLINE { Return(expr) }
     | expr NEWLINE { expr }
 

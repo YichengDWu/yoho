@@ -8,6 +8,7 @@
 # statement:
 #     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
 #     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
+#     | 'while' test=expr ':' NEWLINE INDENT body=statements DEDENT { While(test, body) }
 #     | 'return' expr NEWLINE { Return(expr) }
 #     | expr NEWLINE { expr }
 #
@@ -300,6 +301,29 @@ struct Parser:
                                         return Arc(
                                             NodeData(
                                                 Kind.If,
+                                                test_.take(),
+                                                body_.take(),
+                                            )
+                                        )
+            self._reset(_mark)
+
+            var while_ = self._expect["while"]()
+            if while_:
+                var test_ = self.expr()
+                if test_:
+                    var colon_ = self._expect[":"]()
+                    if colon_:
+                        var newline_ = self._expect["NEWLINE"]()
+                        if newline_:
+                            var indent_ = self._expect["INDENT"]()
+                            if indent_:
+                                var body_ = self.statements()
+                                if body_:
+                                    var dedent_ = self._expect["DEDENT"]()
+                                    if dedent_:
+                                        return Arc(
+                                            NodeData(
+                                                Kind.While,
                                                 test_.take(),
                                                 body_.take(),
                                             )
