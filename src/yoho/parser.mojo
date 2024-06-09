@@ -6,6 +6,8 @@
 #     | statement { Block(List(statement)) }
 #
 # statement:
+#     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
+#     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
 #     | 'return' expr NEWLINE { Return(expr) }
 #     | expr NEWLINE { expr }
 #
@@ -228,6 +230,71 @@ struct Parser:
     fn statement(inout self: Parser) raises -> Optional[Node]:
         fn _statement(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
+
+            var if_ = self._expect["if"]()
+            if if_:
+                var test_ = self.expr()
+                if test_:
+                    var colon_ = self._expect[":"]()
+                    if colon_:
+                        var newline_ = self._expect["NEWLINE"]()
+                        if newline_:
+                            var indent_ = self._expect["INDENT"]()
+                            if indent_:
+                                var body_ = self.statements()
+                                if body_:
+                                    var dedent_ = self._expect["DEDENT"]()
+                                    if dedent_:
+                                        var else_ = self._expect["else"]()
+                                        if else_:
+                                            var colon_ = self._expect[":"]()
+                                            if colon_:
+                                                var newline_ = self._expect[
+                                                    "NEWLINE"
+                                                ]()
+                                                if newline_:
+                                                    var indent_ = self._expect[
+                                                        "INDENT"
+                                                    ]()
+                                                    if indent_:
+                                                        var orelse_ = self.statements()
+                                                        if orelse_:
+                                                            var dedent_ = self._expect[
+                                                                "DEDENT"
+                                                            ]()
+                                                            if dedent_:
+                                                                return Arc(
+                                                                    NodeData(
+                                                                        Kind.If,
+                                                                        test_.take(),
+                                                                        body_.take(),
+                                                                        orelse_.take(),
+                                                                    )
+                                                                )
+            self._reset(_mark)
+
+            if_ = self._expect["if"]()
+            if if_:
+                var test_ = self.expr()
+                if test_:
+                    var colon_ = self._expect[":"]()
+                    if colon_:
+                        var newline_ = self._expect["NEWLINE"]()
+                        if newline_:
+                            var indent_ = self._expect["INDENT"]()
+                            if indent_:
+                                var body_ = self.statements()
+                                if body_:
+                                    var dedent_ = self._expect["DEDENT"]()
+                                    if dedent_:
+                                        return Arc(
+                                            NodeData(
+                                                Kind.If,
+                                                test_.take(),
+                                                body_.take(),
+                                            )
+                                        )
+            self._reset(_mark)
 
             var return_ = self._expect["return"]()
             if return_:

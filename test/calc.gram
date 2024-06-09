@@ -5,6 +5,8 @@ statements:
     | statement { Block(List(statement)) }
 
 statement:
+    | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
+    | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
     | 'return' expr NEWLINE { Return(expr) }
     | expr NEWLINE { expr }
 

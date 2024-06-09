@@ -51,6 +51,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias Block = Self(72)
     alias Assign = Self(73)
     alias Return = Self(74)
+    alias If = Self(75)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -143,6 +144,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "INDENT"
         elif self == Kind.DEDENT:
             return "DEDENT"
+        elif self == Kind.If:
+            return "If"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:

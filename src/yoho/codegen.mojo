@@ -7,12 +7,14 @@ struct CodeGen:
     var reg_pool: List[String]
     var symbol_table: Dict[String, Int]
     var stack_size: Int
+    var branch_counter: Int
 
     fn __init__(inout self):
         self.reg_counter = 0
         self.reg_pool = List[String]()
         self.symbol_table = Dict[String, Int]()
         self.stack_size = 0
+        self.branch_counter = 0
 
     @staticmethod
     fn align_to[align: Int = 16](n: Int) -> Int:
@@ -240,6 +242,35 @@ struct CodeGen:
                 return reg
             else:
                 raise Error("return statement without value")
+
+        elif kind == Kind.If:
+            self.branch_counter += 1
+            var counter = self.branch_counter
+            var cond = _node[].args[0]
+            var body = _node[].args[1]
+
+            var cond_reg = self._gen(fmt, cond)
+            write_to(
+                fmt,
+                "    beqz ",
+                cond_reg,
+                ", .L.else.",
+                counter,
+                "\n",
+            )
+            self.release_reg(cond_reg)
+
+            var body_reg = self._gen(fmt, body)
+            if len(_node[].args) == 3:
+                write_to(fmt, "    j .L.end.", counter, "\n")
+
+            write_to(fmt, ".L.else.", counter, ":\n")
+            if len(_node[].args) == 3:
+                var else_reg = self._gen(fmt, _node[].args[2])
+                write_to(fmt, ".L.end.", counter, ":\n")
+                self.release_reg(body_reg)
+                return else_reg
+            return body_reg
 
         elif kind == Kind.NAME:
             var var_name = _node[].text

@@ -60,4 +60,12 @@ assert 1 'return 1\n2\n3'
 assert 2 '1\nreturn 2\n3'
 assert 3 '1\n2\nreturn 3'
 
+assert 3 'if 0:\n    return 2\nreturn 3'
+assert 3 'if 1-1:\n    return 2\nreturn 3'
+assert 2 'if 1:\n    return 2\nreturn 3'
+assert 2 'if 2-1:\n    return 2\nreturn 3'
+assert 4 'if 0:\n    1\n    2\n    return 3\nelse:\n    return 4'
+assert 3 'if 1:\n    1\n    2\n    return 3\nelse:\n    return 4'
+assert 0 'x = 10\ny = 20\nif x == 10:\n    x = 5\n    if y == 20:\n        x = 0\nreturn x'
+
 echo OK 
