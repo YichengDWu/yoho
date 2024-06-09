@@ -11,7 +11,11 @@ statement:
     | 'return' expr NEWLINE { Return(expr) }
     | expr NEWLINE { expr }
 
-expr: assign
+expr:
+    | declare
+    | assign
+
+declare: 'var' NAME '=' equality { Declare(name, equality) }
 
 assign:
     | NAME '=' assign { Assign(name, assign) }

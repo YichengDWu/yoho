@@ -36,18 +36,14 @@ struct CodeGen:
         var _node = node
         var kind = _node[].kind
 
-        if kind == Kind.NUMBER or kind == Kind.NAME:
-            return
-
-        if kind == Kind.Assign:
+        if kind == Kind.Declare:
             var variable = _node[].args[0]
-            var value = _node[].args[1]
             var variable_name = variable[].text
             if variable_name not in self.symbol_table:
                 self.stack_size += 8
                 self.symbol_table[variable_name] = self.stack_size
-            self.build_stack_frame(value)
-        else:
+
+        if _node[].args:
             for arg in _node[].args:
                 self.build_stack_frame(arg[])
 
@@ -225,9 +221,13 @@ struct CodeGen:
             else:
                 raise Error("unknown unary operator")
 
-        elif kind == Kind.Assign:
+        elif kind == Kind.Declare or kind == Kind.Assign:
             var variable = _node[].args[0]
             var variable_name = variable[].text
+            if variable_name not in self.symbol_table:
+                raise Error(
+                    "use of unkonwn declaration '" + variable_name + "'"
+                )
             var value = _node[].args[1]
             var reg = self._gen(fmt, value)
             var offset = self.stack_size - self.symbol_table[variable_name]

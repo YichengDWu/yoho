@@ -53,6 +53,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias Return = Self(74)
     alias If = Self(75)
     alias While = Self(76)
+    alias Declare = Self(77)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -149,6 +150,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "If"
         elif self == Kind.While:
             return "While"
+        elif self == Kind.Declare:
+            return "Declare"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:

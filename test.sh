@@ -50,11 +50,11 @@ assert 0 'return 1>=2'
 assert 3 "1\n2\nreturn 3"
 assert 2 "1+3\n3<1\nreturn 3-1"
 
-assert 3 "a=3\nreturn a"
-assert 8 "a=3\nz=5\nreturn a+z"
-assert 3 "foo=3\nreturn foo"
-assert 8 "foo123=3\nbar=5\nreturn foo123+bar"
-assert 6 "a=b=3\nreturn a+b"
+assert 6 "var a=1\nvar b=1\na=b=3\nreturn a+b"
+assert 3 "var a=3\nreturn a"
+assert 8 "var a=3\nvar z=5\nreturn a+z"
+assert 3 "var foo=3\nreturn foo"
+assert 8 "var foo123=3\nvar bar=5\nreturn foo123+bar"
 
 assert 1 'return 1\n2\n3'
 assert 2 '1\nreturn 2\n3'
@@ -66,9 +66,9 @@ assert 2 'if 1:\n    return 2\nreturn 3'
 assert 2 'if 2-1:\n    return 2\nreturn 3'
 assert 4 'if 0:\n    1\n    2\n    return 3\nelse:\n    return 4'
 assert 3 'if 1:\n    1\n    2\n    return 3\nelse:\n    return 4'
-assert 0 'x = 10\ny = 20\nif x == 10:\n    x = 5\n    if y == 20:\n        x = 0\nreturn x'
-assert 4 'if 0:\n    1\n    \n    \n    2\n    return 3\n     \n     \nelse:\n    return 4\n \na = 2\n'
+assert 0 'var x = 10\nvar y = 20\nif x == 10:\n    x = 5\n    if y == 20:\n        x = 0\nreturn x'
+assert 4 'if 0:\n    1\n    \n    \n    2\n    return 3\n     \n     \nelse:\n    return 4\n \nvar a = 2\n'
 
-assert 10 'i=0\nwhile i<10:\n    i=i+1\nreturn i\n'
+assert 10 'var i=0\nwhile i<10:\n    i=i+1\nreturn i\n'
 
 echo OK 

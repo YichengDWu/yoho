@@ -12,7 +12,11 @@
 #     | 'return' expr NEWLINE { Return(expr) }
 #     | expr NEWLINE { expr }
 #
-# expr: assign
+# expr:
+#     | declare
+#     | assign
+#
+# declare: 'var' NAME '=' equality { Declare(name, equality) }
 #
 # assign:
 #     | NAME '=' assign { Assign(name, assign) }
@@ -354,6 +358,11 @@ struct Parser:
         fn _expr(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
+            var declare_ = self.declare()
+            if declare_:
+                return declare_.take()
+            self._reset(_mark)
+
             var assign_ = self.assign()
             if assign_:
                 return assign_.take()
@@ -362,6 +371,29 @@ struct Parser:
             return None
 
         return memoize["_expr", _expr](self)
+
+    fn declare(inout self: Parser) raises -> Optional[Node]:
+        fn _declare(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var var_ = self._expect["var"]()
+            if var_:
+                var name_ = self._expect["NAME"]()
+                if name_:
+                    var equal_ = self._expect["="]()
+                    if equal_:
+                        var equality_ = self.equality()
+                        if equality_:
+                            return Arc(
+                                NodeData(
+                                    Kind.Declare, name_.take(), equality_.take()
+                                )
+                            )
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_declare", _declare](self)
 
     fn assign(inout self: Parser) raises -> Optional[Node]:
         fn _assign(inout self: Parser) raises -> Optional[Node]:
