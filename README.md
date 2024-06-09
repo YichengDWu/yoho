@@ -23,7 +23,9 @@ start: grammar ENDMARKER { grammar }
 
 grammar: rules=rule+ { Grammar(rules) }
 
-rule: NAME ':' NEWLINE? rhs NL? { Rule(name.text, rhs)}
+rule: 
+    | NAME ':' NEWLINE INDENT rhs NL DEDENT { Rule(name.text, rhs)}
+    | NAME ':' rhs NL { Rule(name.text, rhs)}
 
 rhs: 
     | '|' alt NEWLINE rhs { Rhs(List(alt) + rhs.args)}
@@ -51,7 +53,6 @@ atom:
     | NAME { Atom(name.text) } 
     | STRING { Atom(string.text) }
     
-
 action: '{' target '}' { target }
 
 target: 
@@ -59,17 +60,17 @@ target:
     | target_atom { Action(target_atom) }
 
 target_atoms: 
-    | target_atom target_atoms { String(target_atom + " " + target_atoms) }
+    | target_atom target_atoms { String(target_atom + ' ' + target_atoms) }
     | target_atom 
 
 target_atom:
     | NAME { String(name.text) }
     | NUMBER { String(number.text) }
-    | "," { String(", ") }
-    | "+" { String(" + ") }
-    | "(" { String("(") }
-    | ")" { String(")") }
-    | "." { String(".")}
+    | ',' { String(', ') }
+    | '+' { String(' + ') }
+    | '(' { String('(') }
+    | ')' { String(')') }
+    | '.' { String('.')}
 
 ```
 This meta-grammar provides a flexible and powerful way to define and generate the parser.

@@ -12,6 +12,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias NUMBER = Self(2)
     alias STRING = Self(3)
     alias NEWLINE = Self(4)
+    alias INDENT = Self(5)
+    alias DEDENT = Self(6)
     alias LPAR = Self(7)
     alias RPAR = Self(8)
     alias LSQB = Self(9)
@@ -137,6 +139,10 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "Assign"
         elif self == Kind.Return:
             return "Return"
+        elif self == Kind.INDENT:
+            return "INDENT"
+        elif self == Kind.DEDENT:
+            return "DEDENT"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:
@@ -224,6 +230,10 @@ fn K[s: StringLiteral]() raises -> Optional[Kind]:
         return Kind.NAME
     elif s == "STRING":
         return Kind.STRING
+    elif s == "INDENT":
+        return Kind.INDENT
+    elif s == "DEDENT":
+        return Kind.DEDENT
 
     return None
 
@@ -318,10 +328,14 @@ struct Token:
 struct TokenGenerator:
     var code: String
     var pos: Int
+    var indents: List[Int]
+    var dedents: Int
 
     fn __init__(inout self, code: String):
         self.code = code
         self.pos = 0
+        self.indents = List[Int]()
+        self.dedents = 0
 
     fn peek_char(inout self) -> String:
         if self.pos < len(self.code):
@@ -367,6 +381,17 @@ struct TokenGenerator:
             "]",
             "\n",
         )
+
+        if self.dedents:
+            self.dedents -= 1
+            return Token(Kind.DEDENT, "", self.pos - 1, self.pos)
+
+        # handle indentation at the beginning of the line
+        if self.pos > 0 and self.code[self.pos - 1] == "\n":
+            if self.peek_char() == " ":
+                return self.handle_indentation()
+            elif self.indents:
+                return self.handle_indentation()
 
         var c = self.next_char()
         if c == "":
@@ -415,6 +440,27 @@ struct TokenGenerator:
                 raise Error("invalid name")
         else:
             raise Error("invalid character")
+
+    fn handle_indentation(inout self) raises -> Token:
+        var indent = 0
+        var pos = self.pos
+        var c = self.next_char()
+        while c == " ":
+            indent += 1
+            c = self.next_char()
+        if c == "\n":  # handle empty line
+            return Token(Kind.NL, "\n", self.pos - 1, self.pos)
+
+        # rollback if it's not the end, otherwise emit dedents before the endmarker
+        self.pos = self.pos - 1 if self.pos != len(self.code) else self.pos
+        if (len(self.indents) == 0 and indent > 0) or indent > self.indents[-1]:
+            self.indents.append(indent)
+            return Token(Kind.INDENT, String(" ") * indent, pos, pos + indent)
+        elif self.indents and indent < self.indents[-1]:
+            while self.indents and indent < self.indents[-1]:
+                _ = self.indents.pop()
+                self.dedents += 1
+        return self.next_token()
 
 
 @value

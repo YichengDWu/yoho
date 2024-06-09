@@ -67,15 +67,28 @@ struct GrammarParser:
 
     fn rule(inout self) raises -> Optional[GrammarNode]:
         var pos = self.mark()
+
         var name = self.expect["NAME"]()
         if name:
-            if self.expect[":"]():
-                _ = self.expect["NEWLINE"]()
+            if (
+                self.expect[":"]()
+                and self.expect["NEWLINE"]()
+                and self.expect["INDENT"]()
+            ):
                 var rhs = self.rhs()
                 if rhs:
-                    _ = self.expect["NL"]()
-                    return Rule(name.value().text, rhs.take())
+                    if self.expect["NL"]() and self.expect["DEDENT"]():
+                        return Rule(name.value().text, rhs.take())
         self.reset(pos)
+
+        name = self.expect["NAME"]()
+        if name:
+            if self.expect[":"]():
+                var rhs = self.rhs()
+                if rhs:
+                    if self.expect["NL"]():
+                        return Rule(name.value().text, rhs.take())
+
         return None
 
     fn rhs(inout self) raises -> Optional[GrammarNode]:

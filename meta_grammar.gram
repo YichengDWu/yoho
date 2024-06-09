@@ -2,7 +2,9 @@ start: grammar ENDMARKER { grammar }
 
 grammar: rules=rule+ { Grammar(rules) }
 
-rule: NAME ':' NEWLINE? rhs NL? { Rule(name.text, rhs)}
+rule: 
+    | NAME ':' NEWLINE INDENT rhs NL DEDENT { Rule(name.text, rhs)}
+    | NAME ':' rhs NL { Rule(name.text, rhs)}
 
 rhs: 
     | '|' alt NEWLINE rhs { Rhs(List(alt) + rhs.args)}
@@ -30,7 +32,6 @@ atom:
     | NAME { Atom(name.text) } 
     | STRING { Atom(string.text) }
     
-
 action: '{' target '}' { target }
 
 target: 
