@@ -1,26 +1,42 @@
 # This file is generated from the following grammar:
-# program: statements ENDMARKER { statements }
+# file: statements ENDMARKER { Module(statements.args) }
 #
-# statements:
-#     | statement NL* statements { Block(List(statement) + statements.args) }
-#     | statement NL* { Block(List(statement)) }
+# statements: s=statement+ { Block(s) }
 #
 # statement:
-#     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
-#     | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
-#     | 'while' test=expr ':' NEWLINE INDENT body=statements DEDENT { While(test, body) }
-#     | 'return' expr NEWLINE { Return(expr) }
-#     | expr NEWLINE { expr }
+#     | compound_stmt
+#     | simple_stmts
 #
-# expr:
-#     | declare
-#     | assign
+# compound_stmt:
+#     | if_stmt
+#     | while_stmt
 #
-# declare: 'var' NAME '=' equality { Declare(name, equality) }
+# simple_stmts: simple_stmt NEWLINE NL* { simple_stmt }
 #
-# assign:
-#     | NAME '=' assign { Assign(name, assign) }
-#     | equality
+# simple_stmt:
+#     | declaration
+#     | return_stmt
+#     | assignment
+#
+# if_stmt:
+#     | 'if' test=expr ':' body=block 'else' ':' orelse=block { If(test, body, orelse) }
+#     | 'if' test=expr ':' body=block { If(test, body) }
+#
+# while_stmt: 'while' test=expr ':' body=block { While(test, body) }
+#
+# block:
+#     | NEWLINE INDENT statements DEDENT { statements }
+#     | simple_stmts
+#
+# assignment:
+#     | NAME '=' assignment { Assign(name, assignment) }
+#     | expr
+#
+# declaration: 'var' NAME '=' expr { Declare(name, expr) }
+#
+# return_stmt: 'return' expr { Return(expr) }
+#
+# expr: equality
 #
 # equality:
 #     | equality '==' relational { Compare(equality, '==', relational) }
@@ -190,52 +206,36 @@ struct Parser:
 
     @always_inline
     fn parse(inout self: Parser) raises -> Optional[Node]:
-        return self.program()
+        return self.file()
 
-    fn program(inout self: Parser) raises -> Optional[Node]:
-        fn _program(inout self: Parser) raises -> Optional[Node]:
+    fn file(inout self: Parser) raises -> Optional[Node]:
+        fn _file(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
             var statements_ = self.statements()
             if statements_:
                 var endmarker_ = self._expect["ENDMARKER"]()
                 if endmarker_:
-                    return statements_.take()
+                    return Arc(NodeData(Kind.Module, statements_.take()[].args))
             self._reset(_mark)
 
             return None
 
-        return memoize["_program", _program](self)
+        return memoize["_file", _file](self)
 
     fn statements(inout self: Parser) raises -> Optional[Node]:
         fn _statements(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            var statement_ = self.statement()
-            if statement_:
-                var nl_ = Optional(List[Node]())
-                var nl__elem = self._expect["NL"]()
-                while nl__elem:
-                    nl_.value().append(nl__elem.value())
-                    nl__elem = self._expect["NL"]()
-                var statements_ = self.statements()
-                if statements_:
-                    return Arc(
-                        NodeData(
-                            Kind.Block,
-                            List(statement_.take()) + statements_.take()[].args,
-                        )
-                    )
-            self._reset(_mark)
-
-            statement_ = self.statement()
-            if statement_:
-                var nl_ = Optional(List[Node]())
-                var nl__elem = self._expect["NL"]()
-                while nl__elem:
-                    nl_.value().append(nl__elem.value())
-                    nl__elem = self._expect["NL"]()
-                return Arc(NodeData(Kind.Block, List(statement_.take())))
+            var s_ = Optional(List[Node]())
+            var s__elem = self.statement()
+            if s__elem:
+                s_.value().append(s__elem.value())
+                s__elem = self.statement()
+                while s__elem:
+                    s_.value().append(s__elem.value())
+                    s__elem = self.statement()
+                return Arc(NodeData(Kind.Block, s_.take()))
             self._reset(_mark)
 
             return None
@@ -246,46 +246,107 @@ struct Parser:
         fn _statement(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
+            var compound_stmt_ = self.compound_stmt()
+            if compound_stmt_:
+                return compound_stmt_.take()
+            self._reset(_mark)
+
+            var simple_stmts_ = self.simple_stmts()
+            if simple_stmts_:
+                return simple_stmts_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_statement", _statement](self)
+
+    fn compound_stmt(inout self: Parser) raises -> Optional[Node]:
+        fn _compound_stmt(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var if_stmt_ = self.if_stmt()
+            if if_stmt_:
+                return if_stmt_.take()
+            self._reset(_mark)
+
+            var while_stmt_ = self.while_stmt()
+            if while_stmt_:
+                return while_stmt_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_compound_stmt", _compound_stmt](self)
+
+    fn simple_stmts(inout self: Parser) raises -> Optional[Node]:
+        fn _simple_stmts(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var simple_stmt_ = self.simple_stmt()
+            if simple_stmt_:
+                var newline_ = self._expect["NEWLINE"]()
+                if newline_:
+                    var nl_ = Optional(List[Node]())
+                    var nl__elem = self._expect["NL"]()
+                    while nl__elem:
+                        nl_.value().append(nl__elem.value())
+                        nl__elem = self._expect["NL"]()
+                    return simple_stmt_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_simple_stmts", _simple_stmts](self)
+
+    fn simple_stmt(inout self: Parser) raises -> Optional[Node]:
+        fn _simple_stmt(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var declaration_ = self.declaration()
+            if declaration_:
+                return declaration_.take()
+            self._reset(_mark)
+
+            var return_stmt_ = self.return_stmt()
+            if return_stmt_:
+                return return_stmt_.take()
+            self._reset(_mark)
+
+            var assignment_ = self.assignment()
+            if assignment_:
+                return assignment_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_simple_stmt", _simple_stmt](self)
+
+    fn if_stmt(inout self: Parser) raises -> Optional[Node]:
+        fn _if_stmt(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
             var if_ = self._expect["if"]()
             if if_:
                 var test_ = self.expr()
                 if test_:
                     var colon_ = self._expect[":"]()
                     if colon_:
-                        var newline_ = self._expect["NEWLINE"]()
-                        if newline_:
-                            var indent_ = self._expect["INDENT"]()
-                            if indent_:
-                                var body_ = self.statements()
-                                if body_:
-                                    var dedent_ = self._expect["DEDENT"]()
-                                    if dedent_:
-                                        var else_ = self._expect["else"]()
-                                        if else_:
-                                            var colon_ = self._expect[":"]()
-                                            if colon_:
-                                                var newline_ = self._expect[
-                                                    "NEWLINE"
-                                                ]()
-                                                if newline_:
-                                                    var indent_ = self._expect[
-                                                        "INDENT"
-                                                    ]()
-                                                    if indent_:
-                                                        var orelse_ = self.statements()
-                                                        if orelse_:
-                                                            var dedent_ = self._expect[
-                                                                "DEDENT"
-                                                            ]()
-                                                            if dedent_:
-                                                                return Arc(
-                                                                    NodeData(
-                                                                        Kind.If,
-                                                                        test_.take(),
-                                                                        body_.take(),
-                                                                        orelse_.take(),
-                                                                    )
-                                                                )
+                        var body_ = self.block()
+                        if body_:
+                            var else_ = self._expect["else"]()
+                            if else_:
+                                var colon_ = self._expect[":"]()
+                                if colon_:
+                                    var orelse_ = self.block()
+                                    if orelse_:
+                                        return Arc(
+                                            NodeData(
+                                                Kind.If,
+                                                test_.take(),
+                                                body_.take(),
+                                                orelse_.take(),
+                                            )
+                                        )
             self._reset(_mark)
 
             if_ = self._expect["if"]()
@@ -294,22 +355,20 @@ struct Parser:
                 if test_:
                     var colon_ = self._expect[":"]()
                     if colon_:
-                        var newline_ = self._expect["NEWLINE"]()
-                        if newline_:
-                            var indent_ = self._expect["INDENT"]()
-                            if indent_:
-                                var body_ = self.statements()
-                                if body_:
-                                    var dedent_ = self._expect["DEDENT"]()
-                                    if dedent_:
-                                        return Arc(
-                                            NodeData(
-                                                Kind.If,
-                                                test_.take(),
-                                                body_.take(),
-                                            )
-                                        )
+                        var body_ = self.block()
+                        if body_:
+                            return Arc(
+                                NodeData(Kind.If, test_.take(), body_.take())
+                            )
             self._reset(_mark)
+
+            return None
+
+        return memoize["_if_stmt", _if_stmt](self)
+
+    fn while_stmt(inout self: Parser) raises -> Optional[Node]:
+        fn _while_stmt(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
 
             var while_ = self._expect["while"]()
             if while_:
@@ -317,63 +376,69 @@ struct Parser:
                 if test_:
                     var colon_ = self._expect[":"]()
                     if colon_:
-                        var newline_ = self._expect["NEWLINE"]()
-                        if newline_:
-                            var indent_ = self._expect["INDENT"]()
-                            if indent_:
-                                var body_ = self.statements()
-                                if body_:
-                                    var dedent_ = self._expect["DEDENT"]()
-                                    if dedent_:
-                                        return Arc(
-                                            NodeData(
-                                                Kind.While,
-                                                test_.take(),
-                                                body_.take(),
-                                            )
-                                        )
+                        var body_ = self.block()
+                        if body_:
+                            return Arc(
+                                NodeData(Kind.While, test_.take(), body_.take())
+                            )
             self._reset(_mark)
 
-            var return_ = self._expect["return"]()
-            if return_:
-                var expr_ = self.expr()
-                if expr_:
-                    var newline_ = self._expect["NEWLINE"]()
-                    if newline_:
-                        return Arc(NodeData(Kind.Return, expr_.take()))
+            return None
+
+        return memoize["_while_stmt", _while_stmt](self)
+
+    fn block(inout self: Parser) raises -> Optional[Node]:
+        fn _block(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var newline_ = self._expect["NEWLINE"]()
+            if newline_:
+                var indent_ = self._expect["INDENT"]()
+                if indent_:
+                    var statements_ = self.statements()
+                    if statements_:
+                        var dedent_ = self._expect["DEDENT"]()
+                        if dedent_:
+                            return statements_.take()
+            self._reset(_mark)
+
+            var simple_stmts_ = self.simple_stmts()
+            if simple_stmts_:
+                return simple_stmts_.take()
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_block", _block](self)
+
+    fn assignment(inout self: Parser) raises -> Optional[Node]:
+        fn _assignment(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var name_ = self._expect["NAME"]()
+            if name_:
+                var equal_ = self._expect["="]()
+                if equal_:
+                    var assignment_ = self.assignment()
+                    if assignment_:
+                        return Arc(
+                            NodeData(
+                                Kind.Assign, name_.take(), assignment_.take()
+                            )
+                        )
             self._reset(_mark)
 
             var expr_ = self.expr()
             if expr_:
-                var newline_ = self._expect["NEWLINE"]()
-                if newline_:
-                    return expr_.take()
+                return expr_.take()
             self._reset(_mark)
 
             return None
 
-        return memoize["_statement", _statement](self)
+        return memoize["_assignment", _assignment](self)
 
-    fn expr(inout self: Parser) raises -> Optional[Node]:
-        fn _expr(inout self: Parser) raises -> Optional[Node]:
-            var _mark = self._mark()
-
-            var declare_ = self.declare()
-            if declare_:
-                return declare_.take()
-            self._reset(_mark)
-
-            var assign_ = self.assign()
-            if assign_:
-                return assign_.take()
-            self._reset(_mark)
-
-            return None
-
-        return memoize["_expr", _expr](self)
-
-    fn declare(inout self: Parser) raises -> Optional[Node]:
-        fn _declare(inout self: Parser) raises -> Optional[Node]:
+    fn declaration(inout self: Parser) raises -> Optional[Node]:
+        fn _declaration(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
             var var_ = self._expect["var"]()
@@ -382,33 +447,37 @@ struct Parser:
                 if name_:
                     var equal_ = self._expect["="]()
                     if equal_:
-                        var equality_ = self.equality()
-                        if equality_:
+                        var expr_ = self.expr()
+                        if expr_:
                             return Arc(
                                 NodeData(
-                                    Kind.Declare, name_.take(), equality_.take()
+                                    Kind.Declare, name_.take(), expr_.take()
                                 )
                             )
             self._reset(_mark)
 
             return None
 
-        return memoize["_declare", _declare](self)
+        return memoize["_declaration", _declaration](self)
 
-    fn assign(inout self: Parser) raises -> Optional[Node]:
-        fn _assign(inout self: Parser) raises -> Optional[Node]:
+    fn return_stmt(inout self: Parser) raises -> Optional[Node]:
+        fn _return_stmt(inout self: Parser) raises -> Optional[Node]:
             var _mark = self._mark()
 
-            var name_ = self._expect["NAME"]()
-            if name_:
-                var equal_ = self._expect["="]()
-                if equal_:
-                    var assign_ = self.assign()
-                    if assign_:
-                        return Arc(
-                            NodeData(Kind.Assign, name_.take(), assign_.take())
-                        )
+            var return_ = self._expect["return"]()
+            if return_:
+                var expr_ = self.expr()
+                if expr_:
+                    return Arc(NodeData(Kind.Return, expr_.take()))
             self._reset(_mark)
+
+            return None
+
+        return memoize["_return_stmt", _return_stmt](self)
+
+    fn expr(inout self: Parser) raises -> Optional[Node]:
+        fn _expr(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
 
             var equality_ = self.equality()
             if equality_:
@@ -417,7 +486,7 @@ struct Parser:
 
             return None
 
-        return memoize["_assign", _assign](self)
+        return memoize["_expr", _expr](self)
 
     fn equality(inout self: Parser) raises -> Optional[Node]:
         fn _equality(inout self: Parser) raises -> Optional[Node]:

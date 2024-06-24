@@ -1,25 +1,41 @@
-program: statements ENDMARKER { statements }
+file: statements ENDMARKER { Module(statements.args) }
 
-statements:
-    | statement NL* statements { Block(List(statement) + statements.args) }
-    | statement NL* { Block(List(statement)) }
+statements: s=statement+ { Block(s) }
 
 statement:
-    | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT 'else' ':' NEWLINE INDENT orelse=statements DEDENT { If(test, body, orelse) }
-    | 'if' test=expr ':' NEWLINE INDENT body=statements DEDENT { If(test, body) }
-    | 'while' test=expr ':' NEWLINE INDENT body=statements DEDENT { While(test, body) }
-    | 'return' expr NEWLINE { Return(expr) }
-    | expr NEWLINE { expr }
+    | compound_stmt
+    | simple_stmts
 
-expr:
-    | declare
-    | assign
+compound_stmt:
+    | if_stmt
+    | while_stmt
 
-declare: 'var' NAME '=' equality { Declare(name, equality) }
+simple_stmts: simple_stmt NEWLINE NL* { simple_stmt }
 
-assign:
-    | NAME '=' assign { Assign(name, assign) }
-    | equality
+simple_stmt:
+    | declaration
+    | return_stmt
+    | assignment
+
+if_stmt:
+    | 'if' test=expr ':' body=block 'else' ':' orelse=block { If(test, body, orelse) }
+    | 'if' test=expr ':' body=block { If(test, body) }
+
+while_stmt: 'while' test=expr ':' body=block { While(test, body) }
+
+block:
+    | NEWLINE INDENT statements DEDENT { statements }
+    | simple_stmts
+
+assignment:
+    | NAME '=' assignment { Assign(name, assignment) }
+    | expr
+
+declaration: 'var' NAME '=' expr { Declare(name, expr) }
+
+return_stmt: 'return' expr { Return(expr) }
+
+expr: equality
 
 equality:
     | equality '==' relational { Compare(equality, '==', relational) }

@@ -95,7 +95,7 @@ fn test_single_char() raises:
 fn test_assign() raises:
     var code = "a=3"
     var p = Parser(code)
-    var tree = p.assign()
+    var tree = p.assignment()
     assert_true(tree)
     print(tree.value()[])
     assert_equal(tree.value()[].kind, Kind.Assign)

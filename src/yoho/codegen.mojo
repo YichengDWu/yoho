@@ -64,7 +64,7 @@ struct CodeGen:
         var _node = node
         var kind = _node[].kind
 
-        if kind == Kind.Block:
+        if kind == Kind.Module or kind == Kind.Block:
             var reg = String()
             for statement in _node[].args:
                 self.release_reg(reg)
