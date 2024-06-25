@@ -105,14 +105,7 @@ fn test_name() raises:
 
 
 fn test_double_char() raises:
-    var double_char_ops = List[String](
-        "==",
-        "!=",
-        "<=",
-        ">=",
-        "<",
-        ">",
-    )
+    var double_char_ops = List[String]("==", "!=", "<=", ">=", "<", ">", "->")
 
     for op in double_char_ops:
         var code = "1 " + op[] + " 2"

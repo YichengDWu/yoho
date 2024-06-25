@@ -2,23 +2,38 @@ from .node import Node
 from .tokenizer import Kind
 
 
-struct CodeGen:
-    var reg_counter: Int
-    var reg_pool: List[String]
-    var symbol_table: Dict[String, Int]
+@value
+struct Function:
+    var name: String
+    var return_type: String
+    var symbol_table: Dict[String, Int]  # variable name -> stack offset
     var stack_size: Int
+    var reg_pool: List[String]
+    var reg_counter: Int
     var branch_counter: Int
 
-    fn __init__(inout self):
-        self.reg_counter = 0
-        self.reg_pool = List[String]()
+    fn __init__(inout self, name: String, return_type: String):
+        self.name = name
+        self.return_type = return_type
         self.symbol_table = Dict[String, Int]()
         self.stack_size = 0
+        self.reg_pool = List[String]()
+        self.reg_counter = 0
         self.branch_counter = 0
 
-    @staticmethod
-    fn align_to[align: Int = 16](n: Int) -> Int:
-        return (n + align - 1) & ~(align - 1)
+    fn __init__(inout self, node: Node):
+        var _node = node
+
+        var name = _node[].text
+        var return_type = "int"  # for now only support int
+        self = Function(name, return_type)
+
+        for arg in _node[].args:
+            self.build_stack_frame(arg[])
+
+        for e in self.symbol_table.items():
+            self.symbol_table[e[].key] = self.stack_size - e[].value
+        self.align_to[16]()
 
     fn get_next_reg(inout self) -> String:
         if len(self.reg_pool) > 0:
@@ -47,33 +62,32 @@ struct CodeGen:
             for arg in _node[].args:
                 self.build_stack_frame(arg[])
 
-    fn gen(inout self, inout fmt: Formatter, inout node: Node) raises:
-        self.build_stack_frame(node)
-        var aligned_stack_size = self.align_to(self.stack_size)
+    fn align_to[align: Int = 16](inout self):
+        self.stack_size = (self.stack_size + align - 1) & ~(align - 1)
+
+    fn build(inout self, inout fmt: Formatter, node: Node) raises:
+        var _node = node
+
+        write_to(fmt, self.name, ":\n")
         if self.stack_size:
-            write_to(fmt, "    add sp, sp, -", aligned_stack_size, "\n")
-        _ = self._gen(fmt, node)
+            write_to(fmt, "    add sp, sp, -", self.stack_size, "\n")
+
+        for arg in _node[].args:
+            var reg = self._build(fmt, arg[])
+            self.release_reg(reg)
+
         write_to(fmt, ".L.return:\n")
         if self.stack_size:
-            write_to(fmt, "    add sp, sp, ", aligned_stack_size, "\n")
+            write_to(fmt, "    add sp, sp, ", self.stack_size, "\n")
         write_to(fmt, "    ret\n")
 
-    fn _gen(
-        inout self, inout fmt: Formatter, inout node: Node
-    ) raises -> String:
+    fn _build(inout self, inout fmt: Formatter, node: Node) raises -> String:
         var _node = node
         var kind = _node[].kind
 
-        if kind == Kind.Module or kind == Kind.Block:
-            var reg = String()
-            for statement in _node[].args:
-                self.release_reg(reg)
-                reg = self._gen(fmt, statement[])
-            return reg
-
-        elif kind == Kind.BinOp:
-            var left_ref = self._gen(fmt, _node[].args[0])
-            var right_ref = self._gen(fmt, _node[].args[2])
+        if kind == Kind.BinOp:
+            var left_ref = self._build(fmt, _node[].args[0])
+            var right_ref = self._build(fmt, _node[].args[2])
             var op = _node[].args[1]
             if op[].text == "+":
                 write_to(
@@ -124,7 +138,7 @@ struct CodeGen:
 
         elif kind == Kind.UnaryOp:
             var op = _node[].args[0]
-            var reg = self._gen(fmt, _node[].args[1])
+            var reg = self._build(fmt, _node[].args[1])
             if op[].text == "+":
                 return reg
             elif op[].text == "-":
@@ -134,8 +148,8 @@ struct CodeGen:
                 raise Error("unknown unary operator")
 
         elif kind == Kind.Compare:
-            var left_ref = self._gen(fmt, _node[].args[0])
-            var right_ref = self._gen(fmt, _node[].args[2])
+            var left_ref = self._build(fmt, _node[].args[0])
+            var right_ref = self._build(fmt, _node[].args[2])
             var op = _node[].args[1]
             if op[].text == "<":
                 write_to(
@@ -212,7 +226,7 @@ struct CodeGen:
 
         elif kind == Kind.UnaryOp:
             var op = _node[].args[0]
-            var reg = self._gen(fmt, _node[].args[1])
+            var reg = self._build(fmt, _node[].args[1])
             if op[].text == "+":
                 return reg
             elif op[].text == "-":
@@ -229,14 +243,20 @@ struct CodeGen:
                     "use of unkonwn declaration '" + variable_name + "'"
                 )
             var value = _node[].args[1]
-            var reg = self._gen(fmt, value)
-            var offset = self.stack_size - self.symbol_table[variable_name]
-            write_to(fmt, "    sd ", reg, ", ", offset, "(sp)\n")
+            var reg = self._build(fmt, value)
+            write_to(
+                fmt,
+                "    sd ",
+                reg,
+                ", ",
+                self.symbol_table[variable_name],
+                "(sp)\n",
+            )
             return reg
 
         elif kind == Kind.Return:
             if _node[].args:
-                var reg = self._gen(fmt, _node[].args[0])
+                var reg = self._build(fmt, _node[].args[0])
                 write_to(fmt, "    mv a0, ", reg, "\n")
                 write_to(fmt, "    j .L.return\n")
                 return reg
@@ -249,7 +269,7 @@ struct CodeGen:
             var cond = _node[].args[0]
             var body = _node[].args[1]
 
-            var cond_reg = self._gen(fmt, cond)
+            var cond_reg = self._build(fmt, cond)
             write_to(
                 fmt,
                 "    beqz ",
@@ -260,13 +280,13 @@ struct CodeGen:
             )
             self.release_reg(cond_reg)
 
-            var body_reg = self._gen(fmt, body)
+            var body_reg = self._build(fmt, body)
             if len(_node[].args) == 3:
                 write_to(fmt, "    j .L.end.", counter, "\n")
 
             write_to(fmt, ".L.else.", counter, ":\n")
             if len(_node[].args) == 3:
-                var else_reg = self._gen(fmt, _node[].args[2])
+                var else_reg = self._build(fmt, _node[].args[2])
                 write_to(fmt, ".L.end.", counter, ":\n")
                 self.release_reg(body_reg)
                 return else_reg
@@ -279,7 +299,7 @@ struct CodeGen:
             var body = _node[].args[1]
 
             write_to(fmt, ".L.loop.", counter, ":\n")
-            var cond_reg = self._gen(fmt, cond)
+            var cond_reg = self._build(fmt, cond)
             write_to(
                 fmt,
                 "    beqz ",
@@ -290,16 +310,22 @@ struct CodeGen:
             )
             self.release_reg(cond_reg)
 
-            var body_reg = self._gen(fmt, body)
+            var body_reg = self._build(fmt, body)
             write_to(fmt, "    j .L.loop.", counter, "\n")
             write_to(fmt, ".L.exit.", counter, ":\n")
             return body_reg
 
         elif kind == Kind.NAME:
-            var var_name = _node[].text
+            var variable_name = _node[].text
             var reg = self.get_next_reg()
-            var offset = self.stack_size - self.symbol_table[var_name]
-            write_to(fmt, "    ld ", reg, ", ", offset, "(sp)\n")
+            write_to(
+                fmt,
+                "    ld ",
+                reg,
+                ", ",
+                self.symbol_table[variable_name],
+                "(sp)\n",
+            )
             return reg
 
         elif kind == Kind.NUMBER:
@@ -308,3 +334,25 @@ struct CodeGen:
             return reg
         else:
             raise Error("unknown node kind")
+
+
+@value
+struct Module:
+    fn build(self, inout fmt: Formatter, node: Node) raises:
+        var _node = node
+        for arg in _node[].args:
+            var _arg = arg[]
+            if _arg[].kind == Kind.FunctionDef:
+                var function = Function(arg[])
+                function.build(fmt, arg[])
+
+
+@value
+struct CodeGen:
+    fn build(self, inout fmt: Formatter, node: Node) raises:
+        var _node = node
+
+        write_to(fmt, ".global main\n")
+        if _node[].kind == Kind.Module:
+            var module = Module()
+            module.build(fmt, _node)

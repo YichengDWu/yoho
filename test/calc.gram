@@ -9,6 +9,7 @@ statement:
 compound_stmt:
     | if_stmt
     | while_stmt
+    | function_def
 
 simple_stmts: simple_stmt NEWLINE NL* { simple_stmt }
 
@@ -22,6 +23,8 @@ if_stmt:
     | 'if' test=expr ':' body=block { If(test, body) }
 
 while_stmt: 'while' test=expr ':' body=block { While(test, body) }
+
+function_def: 'fn' NAME '(' ')' '->' 'Int' ':' block { FunctionDef(name.text, block.args) }
 
 block:
     | NEWLINE INDENT statements DEDENT { statements }

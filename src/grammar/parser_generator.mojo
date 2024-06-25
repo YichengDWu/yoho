@@ -159,6 +159,7 @@ fn get_op_names() -> Dict[String, String]:
     op_names["!="] = "neq"
     op_names["<="] = "leq"
     op_names[">="] = "geq"
+    op_names["->"] = "rarrow"
     op_names["="] = "equal"
     op_names["."] = "dot"
     op_names["%"] = "percent"

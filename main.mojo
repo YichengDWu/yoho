@@ -8,17 +8,15 @@ fn main() raises:
 
     var assembly = String()
     var fmt = Formatter(assembly)
-    write_to(fmt, ".global  main\n")
-    write_to(fmt, "main:\n")
-    var src = open(argv()[1], "r")
-    var code = src.read()
-    var parser = Parser(code)
-    var ast = parser.parse()
-    var codegen = CodeGen()
-    if ast:
-        codegen.gen(fmt, ast.value())
-    else:
-        raise Error("Invalid expression")
-    src.close()
+
+    with open(argv()[1], "r") as src:
+        var code = src.read()
+        var parser = Parser(code)
+        var ast = parser.parse()
+        var codegen = CodeGen()
+        if ast:
+            codegen.build(fmt, ast.take())
+        else:
+            raise Error("Invalid expression")
     with open(argv()[2], "w") as dst:
         dst.write(assembly)

@@ -106,8 +106,19 @@ fn test_assign() raises:
     _ = tree
 
 
+fn test_functiondef() raises:
+    var code = "fn main() -> Int:\n    return 42\n"
+    var p = Parser(code)
+    var tree = p.function_def()
+    assert_true(tree)
+    print(tree.value()[])
+    assert_equal(tree.value()[].kind, Kind.FunctionDef)
+    assert_equal(tree.value()[].text, "main")
+
+
 def main():
     test_basic()
     test_parser()
     test_single_char()
     test_assign()
+    test_functiondef()

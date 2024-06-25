@@ -41,6 +41,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias TILDE = Self(31)
     alias CIRCUMFLEX = Self(32)
     alias AT = Self(49)
+    alias RARROW = Self(51)
     alias EXCLAMATION = Self(54)
     alias NL = Self(65)
 
@@ -55,6 +56,7 @@ struct Kind(EqualityComparable, Representable, Stringable):
     alias While = Self(76)
     alias Declare = Self(77)
     alias Module = Self(78)
+    alias FunctionDef = Self(79)
 
     fn __eq__(self, other: Kind) -> Bool:
         return self.value == other.value
@@ -117,6 +119,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "CIRCUMFLEX"
         elif self == Kind.AT:
             return "AT"
+        elif self == Kind.RARROW:
+            return "RARROW"
         elif self == Kind.EXCLAMATION:
             return "EXCLAMATION"
         elif self == Kind.NUMBER:
@@ -155,6 +159,8 @@ struct Kind(EqualityComparable, Representable, Stringable):
             return "While"
         elif self == Kind.Declare:
             return "Declare"
+        elif self == Kind.FunctionDef:
+            return "FunctionDef"
         return "UNKNOWN"
 
     fn __repr__(self) -> String:
@@ -214,6 +220,8 @@ fn to_kind(kind: String) raises -> Kind:
         return Kind.LESSEQUAL
     elif kind == ">=":
         return Kind.GREATEREQUAL
+    elif kind == "->":
+        return Kind.RARROW
     elif kind == "~":
         return Kind.TILDE
     elif kind == "^":
@@ -365,7 +373,13 @@ struct TokenGenerator:
         var re = Python.import_module("re2")
         var regex_name = re.compile("\\w+")
         var regex_string = re.compile("'.*?'|\".*?\"")
-        alias double_char_ops = InlineList[String, 4]("==", "!=", "<=", ">=")
+        alias double_char_ops = InlineList[String, 5](
+            "==",
+            "!=",
+            "<=",
+            ">=",
+            "->",
+        )
         alias single_char_ops = InlineList[String, 25](
             "+",
             "-",

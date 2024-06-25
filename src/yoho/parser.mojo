@@ -10,6 +10,7 @@
 # compound_stmt:
 #     | if_stmt
 #     | while_stmt
+#     | function_def
 #
 # simple_stmts: simple_stmt NEWLINE NL* { simple_stmt }
 #
@@ -23,6 +24,8 @@
 #     | 'if' test=expr ':' body=block { If(test, body) }
 #
 # while_stmt: 'while' test=expr ':' body=block { While(test, body) }
+#
+# function_def: 'fn' NAME '(' ')' '->' 'Int' ':' block { FunctionDef(name.text, block.args) }
 #
 # block:
 #     | NEWLINE INDENT statements DEDENT { statements }
@@ -274,6 +277,11 @@ struct Parser:
                 return while_stmt_.take()
             self._reset(_mark)
 
+            var function_def_ = self.function_def()
+            if function_def_:
+                return function_def_.take()
+            self._reset(_mark)
+
             return None
 
         return memoize["_compound_stmt", _compound_stmt](self)
@@ -386,6 +394,39 @@ struct Parser:
             return None
 
         return memoize["_while_stmt", _while_stmt](self)
+
+    fn function_def(inout self: Parser) raises -> Optional[Node]:
+        fn _function_def(inout self: Parser) raises -> Optional[Node]:
+            var _mark = self._mark()
+
+            var fn_ = self._expect["fn"]()
+            if fn_:
+                var name_ = self._expect["NAME"]()
+                if name_:
+                    var lpar_ = self._expect["("]()
+                    if lpar_:
+                        var rpar_ = self._expect[")"]()
+                        if rpar_:
+                            var rarrow_ = self._expect["->"]()
+                            if rarrow_:
+                                var int_ = self._expect["Int"]()
+                                if int_:
+                                    var colon_ = self._expect[":"]()
+                                    if colon_:
+                                        var block_ = self.block()
+                                        if block_:
+                                            return Arc(
+                                                NodeData(
+                                                    Kind.FunctionDef,
+                                                    name_.take()[].text,
+                                                    block_.take()[].args,
+                                                )
+                                            )
+            self._reset(_mark)
+
+            return None
+
+        return memoize["_function_def", _function_def](self)
 
     fn block(inout self: Parser) raises -> Optional[Node]:
         fn _block(inout self: Parser) raises -> Optional[Node]:
